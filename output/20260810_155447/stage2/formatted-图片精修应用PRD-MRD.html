@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="docx-page-size" content="A4">
+  <title>图片精修废片修复手机应用 - 产品需求文档与市场需求文档</title>
+  <style>
+  :root {
+    /* Page layout */
+    --page-content-width: var(--layout-maxContentWidth, 15.6cm);
+    /* Typography */
+    --fs-title: var(--typography-fontSize-title, 24pt);
+    --fs-h1: var(--typography-fontSize-h1, 18pt);
+    --fs-h2: var(--typography-fontSize-h2, 15pt);
+    --fs-h3: var(--typography-fontSize-h3, 13pt);
+    --fs-body: var(--typography-fontSize-body, 11pt);
+    --fs-small: var(--typography-fontSize-small, 9pt);
+    --ff-heading: var(--typography-fontFamily-heading, "PingFang SC", "苹方-简", "微软雅黑", sans-serif);
+    --ff-body: var(--typography-fontFamily-body, "PingFang SC", "苹方-简", "微软雅黑", sans-serif);
+    --ff-bodyLatin: var(--typography-fontFamily-bodyLatin, "Inter", "Helvetica Neue", Arial, sans-serif);
+    --ff-code: var(--typography-fontFamily-code, "JetBrains Mono", "Fira Code", Consolas, monospace);
+    --lh-title: var(--typography-lineHeight-title, 1.4);
+    --lh-body: var(--typography-lineHeight-body, 1.7);
+    --lh-heading: var(--typography-lineHeight-heading, 1.3);
+    --fw-heading: var(--typography-fontWeight-heading, 600);
+    --fw-body: var(--typography-fontWeight-body, 400);
+    /* Color */
+    --color-primary: var(--color-primary, #2563EB);
+    --color-text: var(--color-text, #111827);
+    --color-textSecondary: var(--color-textSecondary, #6B7280);
+    --color-heading: var(--color-heading, #111827);
+    --color-border: var(--color-border, #E5E7EB);
+    --color-divider: var(--color-divider, #F3F4F6);
+    --color-background: var(--color-background, #FFFFFF);
+    --color-codeBackground: var(--color-codeBackground, #F9FAFB);
+    --color-highlight: var(--color-highlight, #FEF3C7);
+    /* Spacing */
+    --spacing-paragraph: var(--spacing-paragraph, 0.5em);
+    --spacing-paragraphAfter: var(--spacing-paragraphAfter, 0.5em);
+    --spacing-indent: var(--spacing-indent, 0em);
+    --spacing-sectionGap: var(--spacing-sectionGap, 2em);
+    --spacing-listItemGap: var(--spacing-listItemGap, 0.4em);
+    /* Layout */
+    --layout-marginTop: var(--layout-marginTop, 2.5cm);
+    --layout-marginBottom: var(--layout-marginBottom, 2.0cm);
+    --layout-marginLeft: var(--layout-marginLeft, 2.5cm);
+    --layout-marginRight: var(--layout-marginRight, 2.5cm);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--ff-body);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-text);
+    background: var(--color-background);
+    max-width: var(--page-content-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding: var(--layout-marginTop) var(--layout-marginLeft) var(--layout-marginBottom) var(--layout-marginRight);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--ff-heading);
+    line-height: var(--lh-heading);
+    font-weight: var(--fw-heading);
+    color: var(--color-heading);
+    margin-top: var(--spacing-sectionGap);
+    margin-bottom: var(--spacing-paragraph);
+  }
+  h1 { font-size: var(--fs-h1); }
+  h2 { font-size: var(--fs-h2); }
+  h3 { font-size: var(--fs-h3); }
+  h4 { font-size: var(--fs-body); font-weight: var(--fw-heading); }
+
+  p { margin-bottom: var(--spacing-paragraph); }
+
+  ul, ol { padding-left: 2em; margin-bottom: var(--spacing-paragraph); }
+  li { margin-bottom: var(--spacing-listItemGap); }
+
+  table { border-collapse: collapse; width: 100%; margin-bottom: var(--spacing-paragraph); }
+  th, td { padding: 0.5em 0.8em; border: 1px solid var(--color-border); }
+  th { font-weight: var(--fw-heading); background: var(--color-divider); }
+  caption { font-size: var(--fs-small); margin-bottom: 0.4em; text-align: left; }
+
+  code {
+    font-family: var(--ff-code);
+    background: var(--color-codeBackground);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+
+  pre {
+    background: var(--color-codeBackground);
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin-bottom: var(--spacing-paragraph);
+    font-family: var(--ff-code);
+    font-size: var(--fs-small);
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  .doc-header {
+    text-align: center;
+    margin-bottom: var(--spacing-sectionGap);
+    padding-bottom: var(--spacing-sectionGap);
+    border-bottom: 2px solid var(--color-primary);
+  }
+
+  .doc-title {
+    font-size: var(--fs-title);
+    color: var(--color-primary);
+    margin-bottom: 0.5em;
+    text-align: center;
+  }
+
+  .doc-subtitle {
+    font-size: var(--fs-h2);
+    color: var(--color-textSecondary);
+    margin-bottom: 1em;
+    text-align: center;
+  }
+
+  .doc-meta {
+    font-size: var(--fs-small);
+    color: var(--color-textSecondary);
+    text-align: center;
+  }
+
+  .doc-toc {
+    margin-bottom: var(--spacing-sectionGap);
+    padding: 1em;
+    background: var(--color-divider);
+    border-radius: 6px;
+  }
+
+  .toc-title {
+    font-weight: var(--fw-heading);
+    margin-bottom: 0.5em;
+    color: var(--color-heading);
+  }
+
+  .toc-list {
+    padding-left: 1.5em;
+  }
+
+  .toc-list li {
+    margin-bottom: 0.3em;
+  }
+
+  .toc-list a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .toc-list a:hover {
+    text-decoration: underline;
+  }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: var(--spacing-sectionGap) 0;
+  }
+
+  .callout {
+    padding: 1em;
+    border-left: 4px solid var(--color-primary);
+    background: var(--color-divider);
+    margin-bottom: var(--spacing-paragraph);
+    border-radius: 0 6px 6px 0;
+  }
+
+  .callout-warning {
+    border-left-color: #F59E0B;
+  }
+
+  .callout-danger {
+    border-left-color: #EF4444;
+  }
+
+  .callout-title {
+    font-weight: var(--fw-heading);
+    margin-bottom: 0.5em;
+  }
+
+  .data-card {
+    display: inline-block;
+    padding: 0.5em 1em;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 6px;
+    font-weight: var(--fw-heading);
+    margin-right: 0.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .doc-footer {
+    margin-top: var(--spacing-sectionGap);
+    padding-top: var(--spacing-sectionGap);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-textSecondary);
+    font-size: var(--fs-small);
+    text-align: center;
+  }
+  </style>
+</head>
+<body>
+  <header class="doc-header">
+    <h1 class="doc-title">图片精修废片修复手机应用</h1>
+    <p class="doc-subtitle">产品需求文档（PRD）与市场需求文档（MRD）</p>
+    <p class="doc-meta">产品名称：P图修图-精修家（暂定名）<br>文档版本：v1.0<br>创建日期：2026年8月10日</p>
+  </header>
+
+  <nav class="doc-toc" aria-label="文档目录">
+    <p class="toc-title">目录</p>
+    <ol class="toc-list">
+      <li><a href="#section-1">产品概述</a></li>
+      <li><a href="#section-2">产品需求文档（PRD）</a></li>
+      <li><a href="#section-3">市场需求文档（MRD）</a></li>
+      <li><a href="#section-4">附录</a></li>
+    </ol>
+  </nav>
+
+  <main class="doc-main">
+    <section id="section-1">
+      <h2>一、产品概述</h2>
+      
+      <h3>1.1 产品定位</h3>
+      <p>一款基于豆包 Doubao-Seedream-5.0-pro 大模型的智能图片精修与废片修复手机应用，通过 AI 技术实现一键精修、批量处理、实时预览等功能，为用户提供高效、专业的图片美化体验。</p>
+
+      <h3>1.2 目标用户</h3>
+      <ul>
+        <li><strong>普通用户</strong>：社交媒体分享、个人照片美化</li>
+        <li><strong>摄影爱好者</strong>：专业修图、作品精修</li>
+        <li><strong>电商从业者</strong>：商品图处理、批量修图</li>
+        <li><strong>内容创作者</strong>：社交媒体内容、营销素材</li>
+      </ul>
+
+      <h3>1.3 核心价值</h3>
+      <ol>
+        <li><strong>AI 一键精修</strong>：基于豆包大模型，通过提示词一键完成专业级精修</li>
+        <li><strong>提示词模板化</strong>：用户调教好的提示词可生成模板，快捷复用</li>
+        <li><strong>批量高效处理</strong>：支持多图批量精修，大幅提升工作效率</li>
+        <li><strong>实时进度反馈</strong>：精修进度实时显示，用户感知明确</li>
+        <li><strong>本地实时预览</strong>：部位调节支持本地 AI 实时预览，操作即所得</li>
+      </ol>
+    </section>
+
+    <hr class="section-divider">
+
+    <section id="section-2">
+      <h2>二、产品需求文档（PRD）</h2>
+
+      <h3>2.1 功能需求</h3>
+
+      <h4>2.1.1 AI 一键精修功能</h4>
+      <p><strong>功能描述</strong>：用户选择图片后，通过预设或自定义提示词，调用豆包 Doubao-Seedream-5.0-pro 模型进行一键精修。</p>
+      <p><strong>详细需求</strong>：</p>
+      <ul>
+        <li>支持单张图片精修</li>
+        <li>提供系统预设提示词模板（人像精修、风景优化、商品图美化等）</li>
+        <li>支持用户自定义提示词输入</li>
+        <li>精修完成后提供原图对比功能</li>
+        <li>支持精修效果保存与分享</li>
+      </ul>
+      <p><strong>技术实现</strong>：</p>
+      <ul>
+        <li>调用豆包 Doubao-Seedream-5.0-pro API</li>
+        <li>图片压缩与上传优化</li>
+        <li>结果缓存机制</li>
+      </ul>
+
+      <h4>2.1.2 提示词模板管理</h4>
+      <p><strong>功能描述</strong>：用户与 AI 沟通调教好的提示词，可以生成模板，方便后续快捷使用。</p>
+      <p><strong>详细需求</strong>：</p>
+      <ul>
+        <li>提示词模板创建与编辑</li>
+        <li>模板分类管理（人像、风景、商品、创意等）</li>
+        <li>模板收藏与常用排序</li>
+        <li>模板分享功能</li>
+        <li>模板市场（用户上传优质模板）</li>
+      </ul>
+      <p><strong>技术实现</strong>：</p>
+      <ul>
+        <li>本地模板数据库</li>
+        <li>云端同步机制</li>
+        <li>模板版本管理</li>
+      </ul>
+
+      <h4>2.1.3 批量修图功能</h4>
+      <p><strong>功能描述</strong>：用户选择多张图片，点击相关提示词，一键批量完成精修。</p>
+      <p><strong>详细需求</strong>：</p>
+      <ul>
+        <li>支持多图选择（最多20张）</li>
+        <li>批量应用同一提示词模板</li>
+        <li>批量处理进度显示</li>
+        <li>单张图片处理状态追踪</li>
+        <li>批量结果导出与分享</li>
+      </ul>
+      <p><strong>技术实现</strong>：</p>
+      <ul>
+        <li>异步任务队列</li>
+        <li>并发控制（避免 API 限流）</li>
+        <li>进度回调机制</li>
+        <li>断点续传支持</li>
+      </ul>
+
+      <h4>2.1.4 实时进度显示</h4>
+      <p><strong>功能描述</strong>：精修进度要实时显示出来，让用户有感知。</p>
+      <p><strong>详细需求</strong>：</p>
+      <ul>
+        <li>整体处理进度百分比</li>
+        <li>单张图片处理状态（排队中、处理中、已完成、失败）</li>
+        <li>预估剩余时间</li>
+        <li>后台处理支持</li>
+        <li>处理完成推送通知</li>
+      </ul>
+      <p><strong>技术实现</strong>：</p>
+      <ul>
+        <li>WebSocket 实时通信</li>
+        <li>进度状态机</li>
+        <li>本地通知系统</li>
+      </ul>
+
+      <h4>2.1.5 基础人像修图功能</h4>
+      <p><strong>功能描述</strong>：具备普通的人像修图 App 的功能，图片基础调节。</p>
+      <p><strong>详细需求</strong>：</p>
+      <ul>
+        <li>亮度、对比度、饱和度调节</li>
+        <li>色温、色调调节</li>
+        <li>高光、阴影、白色、黑色调节</li>
+        <li>锐化、降噪处理</li>
+        <li>裁剪、旋转、翻转</li>
+        <li>滤镜效果（复古、清新、黑白等）</li>
+        <li>撤销/重做功能</li>
+        <li>历史记录</li>
+      </ul>
+      <p><strong>技术实现</strong>：</p>
+      <ul>
+        <li>本地图像处理算法</li>
+        <li>GPU 加速</li>
+        <li>实时预览渲染</li>
+      </ul>
+
+      <h4>2.1.6 人物部位快捷调节</h4>
+      <p><strong>功能描述</strong>：人物部位快捷调节（比如瘦腿、瘦腰、瘦脸、大眼、拉高身高等），基于本地 AI 模型快捷修改，实时预览功能。</p>
+      <p><strong>详细需求</strong>：</p>
+      <ul>
+        <li>瘦脸、大眼、瘦鼻、缩嘴</li>
+        <li>瘦腿、瘦腰、丰胸、长腿</li>
+        <li>拉高身高、调整比例</li>
+        <li>实时预览滑动调节</li>
+        <li>效果强度控制</li>
+        <li>多部位同时调节</li>
+      </ul>
+      <p><strong>技术实现</strong>：</p>
+      <ul>
+        <li>本地 AI 模型（TensorFlow Lite/ONNX）</li>
+        <li>人脸关键点检测</li>
+        <li>身体部位分割</li>
+        <li>实时变形算法</li>
+        <li>GPU 加速渲染</li>
+      </ul>
+
+      <h3>2.2 非功能需求</h3>
+
+      <h4>2.2.1 性能需求</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>指标</th>
+            <th>要求</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>响应时间</td>
+            <td>基础调节操作响应时间 &lt; 100ms</td>
+          </tr>
+          <tr>
+            <td>AI 精修时间</td>
+            <td>单张图片精修时间 &lt; 30秒</td>
+          </tr>
+          <tr>
+            <td>批量处理</td>
+            <td>20张图片批量处理时间 &lt; 10分钟</td>
+          </tr>
+          <tr>
+            <td>实时预览</td>
+            <td>部位调节预览帧率 &gt; 30fps</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>2.2.2 兼容性需求</h4>
+      <ul>
+        <li><strong>iOS</strong>：支持 iOS 14.0 及以上版本</li>
+        <li><strong>Android</strong>：支持 Android 8.0 及以上版本</li>
+        <li><strong>设备</strong>：支持主流手机品牌（iPhone、华为、小米、OPPO、vivo 等）</li>
+      </ul>
+
+      <h4>2.2.3 安全需求</h4>
+      <ul>
+        <li>图片传输加密</li>
+        <li>用户隐私保护</li>
+        <li>内容安全审核</li>
+        <li>数据备份与恢复</li>
+      </ul>
+
+      <h4>2.2.4 可用性需求</h4>
+      <ul>
+        <li>界面简洁直观</li>
+        <li>操作流程顺畅</li>
+        <li>新手引导完善</li>
+        <li>无障碍设计</li>
+      </ul>
+
+      <h3>2.3 技术架构</h3>
+
+      <h4>2.3.1 整体架构</h4>
+      <pre><code>┌─────────────────────────────────────────────────┐
+│                  用户界面层                      │
+├─────────────────────────────────────────────────┤
+│  图片选择  │  提示词管理  │  批量处理  │  实时预览  │
+└─────────────────────────────────────────────────┘
+                          │
+┌─────────────────────────────────────────────────┐
+│                  业务逻辑层                      │
+├─────────────────────────────────────────────────┤
+│  云端AI处理  │  本地AI处理  │  模板管理  │  任务调度  │
+└─────────────────────────────────────────────────┘
+                          │
+┌─────────────────────────────────────────────────┐
+│                  数据层                          │
+├─────────────────────────────────────────────────┤
+│  本地缓存  │  模板数据库  │  处理历史  │  用户数据  │
+└─────────────────────────────────────────────────┘</code></pre>
+
+      <h4>2.3.2 技术选型</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>模块</th>
+            <th>技术方案</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>前端框架</td>
+            <td>React Native / Flutter</td>
+          </tr>
+          <tr>
+            <td>本地 AI</td>
+            <td>TensorFlow Lite / ONNX Runtime</td>
+          </tr>
+          <tr>
+            <td>云端 AI</td>
+            <td>豆包 Doubao-Seedream-5.0-pro API</td>
+          </tr>
+          <tr>
+            <td>数据库</td>
+            <td>SQLite（本地）+ 云数据库</td>
+          </tr>
+          <tr>
+            <td>网络</td>
+            <td>HTTP/HTTPS + WebSocket</td>
+          </tr>
+          <tr>
+            <td>存储</td>
+            <td>本地存储 + 云存储</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>2.3.3 关键技术点</h4>
+      <ol>
+        <li><strong>模型优化</strong>：本地模型量化、剪枝、蒸馏</li>
+        <li><strong>图像处理</strong>：分片处理、边缘融合、GPU 加速</li>
+        <li><strong>并发控制</strong>：任务队列、限流策略、重试机制</li>
+        <li><strong>实时通信</strong>：WebSocket 进度推送</li>
+        <li><strong>隐私保护</strong>：端到端加密、本地处理优先</li>
+      </ol>
+
+      <h3>2.4 交互设计</h3>
+
+      <h4>2.4.1 核心页面</h4>
+      <ol>
+        <li><strong>首页</strong>：图片选择、最近处理、推荐模板</li>
+        <li><strong>精修页面</strong>：提示词输入、效果预览、参数调节</li>
+        <li><strong>批量处理页面</strong>：图片选择、模板应用、进度显示</li>
+        <li><strong>模板管理页面</strong>：模板分类、创建编辑、收藏分享</li>
+        <li><strong>设置页面</strong>：账号管理、会员购买、偏好设置</li>
+      </ol>
+
+      <h4>2.4.2 交互流程</h4>
+      <pre><code>用户打开应用 → 选择图片 → 选择精修方式
+                ↓
+        ┌───────┴───────┐
+        ↓               ↓
+    一键精修         部位调节
+        ↓               ↓
+    选择提示词       实时预览
+        ↓               ↓
+    开始处理         调节参数
+        ↓               ↓
+    进度显示         保存结果
+        ↓               ↓
+    完成预览         返回首页</code></pre>
+
+      <h3>2.5 数据指标</h3>
+
+      <h4>2.5.1 核心指标</h4>
+      <ul>
+        <li><strong>日活跃用户数 (DAU)</strong></li>
+        <li><strong>用户留存率</strong>（次日、7日、30日）</li>
+        <li><strong>单用户日均使用时长</strong></li>
+        <li><strong>图片处理量</strong>（日均）</li>
+        <li><strong>付费转化率</strong></li>
+      </ul>
+
+      <h4>2.5.2 功能指标</h4>
+      <ul>
+        <li><strong>一键精修使用率</strong></li>
+        <li><strong>批量处理使用率</strong></li>
+        <li><strong>提示词模板创建量</strong></li>
+        <li><strong>实时预览使用率</strong></li>
+        <li><strong>部位调节使用率</strong></li>
+      </ul>
+
+      <h4>2.5.3 性能指标</h4>
+      <ul>
+        <li><strong>API 调用成功率</strong></li>
+        <li><strong>平均处理时间</strong></li>
+        <li><strong>崩溃率</strong></li>
+        <li><strong>用户反馈评分</strong></li>
+      </ul>
+
+      <h3>2.6 里程碑计划</h3>
+
+      <h4>2.6.1 第一阶段（MVP）</h4>
+      <ul>
+        <li><strong>时间</strong>：8周</li>
+        <li><strong>目标</strong>：核心功能上线</li>
+        <li><strong>功能</strong>：AI 一键精修、基础修图、图片管理</li>
+      </ul>
+
+      <h4>2.6.2 第二阶段</h4>
+      <ul>
+        <li><strong>时间</strong>：6周</li>
+        <li><strong>目标</strong>：批量处理与模板</li>
+        <li><strong>功能</strong>：批量修图、提示词模板、进度显示</li>
+      </ul>
+
+      <h4>2.6.3 第三阶段</h4>
+      <ul>
+        <li><strong>时间</strong>：6周</li>
+        <li><strong>目标</strong>：本地 AI 功能</li>
+        <li><strong>功能</strong>：部位调节、实时预览、性能优化</li>
+      </ul>
+
+      <h4>2.6.4 第四阶段</h4>
+      <ul>
+        <li><strong>时间</strong>：4周</li>
+        <li><strong>目标</strong>：商业化与运营</li>
+        <li><strong>功能</strong>：会员体系、模板市场、数据分析</li>
+      </ul>
+
+      <h3>2.7 风险评估</h3>
+
+      <h4>2.7.1 技术风险</h4>
+      <ul>
+        <li>豆包 API 稳定性与成本</li>
+        <li>本地 AI 模型性能限制</li>
+        <li>移动端兼容性问题</li>
+      </ul>
+
+      <h4>2.7.2 市场风险</h4>
+      <ul>
+        <li>竞争激烈（美图秀秀、Snapseed 等）</li>
+        <li>用户付费意愿</li>
+        <li>技术迭代快速</li>
+      </ul>
+
+      <h4>2.7.3 运营风险</h4>
+      <ul>
+        <li>内容安全审核</li>
+        <li>用户隐私保护</li>
+        <li>服务质量保障</li>
+      </ul>
+    </section>
+
+    <hr class="section-divider">
+
+    <section id="section-3">
+      <h2>三、市场需求文档（MRD）</h2>
+
+      <h3>3.1 市场概述</h3>
+
+      <h4>3.1.1 市场规模</h4>
+      <ul>
+        <li><strong>全球图片修图软件市场</strong>：2024年约38亿美元，预计2025年41亿美元，2033年达84亿美元，年复合增长率(CAGR) 8.5%</li>
+        <li><strong>移动图片编辑应用市场</strong>：2025年29.3亿美元，预计2034年达64.2亿美元，CAGR 9.1%</li>
+        <li><strong>中国市场</strong>：亚太地区占全球市场约34.6%，增长最快，CAGR约11.0%</li>
+      </ul>
+
+      <h4>3.1.2 市场增长驱动因素</h4>
+      <ol>
+        <li><strong>智能手机摄像头技术进步</strong>
+          <ul>
+            <li>多镜头系统普及</li>
+            <li>高分辨率传感器</li>
+            <li>计算摄影发展</li>
+          </ul>
+        </li>
+        <li><strong>社交媒体内容创作需求</strong>
+          <ul>
+            <li>Instagram、TikTok、小红书等平台用户增长</li>
+            <li>个人品牌建设需求</li>
+            <li>内容营销普及</li>
+          </ul>
+        </li>
+        <li><strong>AI 技术赋能</strong>
+          <ul>
+            <li>自动化修图降低使用门槛</li>
+            <li>智能推荐提升用户体验</li>
+            <li>个性化定制满足多样需求</li>
+          </ul>
+        </li>
+        <li><strong>电商与营销需求</strong>
+          <ul>
+            <li>商品图美化需求</li>
+            <li>批量处理效率要求</li>
+            <li>品牌视觉一致性</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h4>3.1.3 市场趋势</h4>
+      <ol>
+        <li><strong>AI 功能成为标配</strong>
+          <ul>
+            <li>自动背景移除</li>
+            <li>智能对象移除</li>
+            <li>一键美化</li>
+            <li>AI 生成内容</li>
+          </ul>
+        </li>
+        <li><strong>实时处理需求增长</strong>
+          <ul>
+            <li>手机端实时预览</li>
+            <li>即时效果反馈</li>
+            <li>流畅操作体验</li>
+          </ul>
+        </li>
+        <li><strong>个性化与定制化</strong>
+          <ul>
+            <li>用户自定义模板</li>
+            <li>个人风格保存</li>
+            <li>智能推荐系统</li>
+          </ul>
+        </li>
+        <li><strong>社交平台深度集成</strong>
+          <ul>
+            <li>一键分享到多平台</li>
+            <li>平台专属尺寸优化</li>
+            <li>协作编辑功能</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h3>3.2 目标市场分析</h3>
+
+      <h4>3.2.1 用户细分</h4>
+
+      <h4>个人用户（主力市场）</h4>
+      <p><strong>社交媒体爱好者</strong></p>
+      <ul>
+        <li>年龄：18-35岁</li>
+        <li>特征：活跃于 Instagram、小红书、抖音</li>
+        <li>需求：快速美化照片，提升社交形象</li>
+        <li>痛点：专业软件学习成本高，时间有限</li>
+      </ul>
+
+      <p><strong>摄影爱好者</strong></p>
+      <ul>
+        <li>年龄：25-45岁</li>
+        <li>特征：追求照片质量，有一定审美</li>
+        <li>需求：专业级精修，保留细节</li>
+        <li>痛点：手机修图功能不足，电脑修图不便</li>
+      </ul>
+
+      <p><strong>普通用户</strong></p>
+      <ul>
+        <li>年龄：全年龄段</li>
+        <li>特征：偶尔修图，追求简单易用</li>
+        <li>需求：快速美化，一键完成</li>
+        <li>痛点：功能复杂，不知如何操作</li>
+      </ul>
+
+      <h4>专业用户（高价值市场）</h4>
+      <p><strong>摄影师</strong></p>
+      <ul>
+        <li>需求：批量处理，保持风格一致</li>
+        <li>痛点：重复工作多，效率低下</li>
+        <li>付费意愿：高</li>
+      </ul>
+
+      <p><strong>设计师</strong></p>
+      <ul>
+        <li>需求：快速原型，创意实现</li>
+        <li>痛点：素材处理耗时</li>
+        <li>付费意愿：高</li>
+      </ul>
+
+      <p><strong>内容创作者</strong></p>
+      <ul>
+        <li>需求：高效产出，吸引关注</li>
+        <li>痛点：内容生产压力大</li>
+        <li>付费意愿：中高</li>
+      </ul>
+
+      <h4>企业用户（增长最快）</h4>
+      <p><strong>电商从业者</strong></p>
+      <ul>
+        <li>需求：商品图批量处理，保持品质</li>
+        <li>痛点：人工修图成本高，效率低</li>
+        <li>付费意愿：高</li>
+      </ul>
+
+      <p><strong>营销团队</strong></p>
+      <ul>
+        <li>需求：品牌视觉一致性，快速产出</li>
+        <li>痛点：跨平台适配复杂</li>
+        <li>付费意愿：高</li>
+      </ul>
+
+      <p><strong>媒体机构</strong></p>
+      <ul>
+        <li>需求：新闻图片快速处理</li>
+        <li>痛点：时效性要求高</li>
+        <li>付费意愿：中高</li>
+      </ul>
+
+      <h4>3.2.2 竞品分析</h4>
+
+      <p><strong>直接竞品</strong></p>
+      <table>
+        <thead>
+          <tr>
+            <th>竞品</th>
+            <th>核心优势</th>
+            <th>核心劣势</th>
+            <th>市场定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>美图秀秀</td>
+            <td>AI 功能丰富，用户基数大</td>
+            <td>高级功能付费，广告多</td>
+            <td>大众市场，女性用户为主</td>
+          </tr>
+          <tr>
+            <td>Snapseed</td>
+            <td>免费专业级功能，Google 支持</td>
+            <td>功能相对基础，无 AI 精修</td>
+            <td>摄影爱好者，专业用户</td>
+          </tr>
+          <tr>
+            <td>Adobe Lightroom</td>
+            <td>专业级功能，云端同步</td>
+            <td>订阅费用高，学习曲线陡</td>
+            <td>专业摄影师，设计师</td>
+          </tr>
+          <tr>
+            <td>VSCO</td>
+            <td>滤镜质量高，社区活跃</td>
+            <td>功能单一，付费墙多</td>
+            <td>年轻用户，创意人群</td>
+          </tr>
+          <tr>
+            <td>Facetune</td>
+            <td>人像精修专业，效果自然</td>
+            <td>价格较高，功能聚焦</td>
+            <td>人像摄影，自拍美化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>间接竞品</strong></p>
+      <ul>
+        <li>手机厂商自带相机应用：基础修图功能，系统集成</li>
+        <li>社交平台内置编辑器：Instagram、抖音等平台自带编辑功能</li>
+        <li>在线修图工具：Canva、Fotor 等网页端工具</li>
+      </ul>
+
+      <p><strong>竞品差异化机会</strong></p>
+      <ol>
+        <li><strong>AI 精修能力</strong>：豆包 Doubao-Seedream-5.0-pro 模型提供更强的图像理解与生成能力</li>
+        <li><strong>提示词模板化</strong>：用户可创建、保存、分享个性化提示词模板</li>
+        <li><strong>批量处理效率</strong>：专为批量场景优化，提升工作效率</li>
+        <li><strong>本地实时预览</strong>：部位调节支持本地 AI 实时预览，操作更流畅</li>
+      </ol>
+
+      <h4>3.2.3 市场机会</h4>
+
+      <p><strong>未满足需求</strong></p>
+      <ol>
+        <li><strong>高效批量处理</strong>：现有应用批量功能有限，效率不高</li>
+        <li><strong>个性化提示词</strong>：用户无法保存和复用自己调教的提示词</li>
+        <li><strong>实时预览体验</strong>：部位调节实时性不足，操作延迟明显</li>
+        <li><strong>专业与易用平衡</strong>：专业功能复杂，普通用户难以上手</li>
+      </ol>
+
+      <p><strong>技术趋势机会</strong></p>
+      <ol>
+        <li><strong>大模型能力提升</strong>：豆包等大模型提供更强的图像理解与生成能力</li>
+        <li><strong>移动端 AI 性能</strong>：手机芯片 AI 算力提升，本地处理成为可能</li>
+        <li><strong>5G 网络普及</strong>：云端处理延迟降低，用户体验提升</li>
+      </ol>
+
+      <p><strong>商业模式机会</strong></p>
+      <ol>
+        <li><strong>订阅制增长</strong>：用户对优质服务的付费意愿提升</li>
+        <li><strong>模板市场</strong>：用户生成内容(UGC)带来新的收入来源</li>
+        <li><strong>企业服务</strong>：批量处理需求催生 B2B 市场</li>
+      </ol>
+
+      <h3>3.3 用户需求分析</h3>
+
+      <h4>3.3.1 核心需求</h4>
+
+      <p><strong>效率提升需求</strong></p>
+      <ul>
+        <li><strong>一键精修</strong>：减少手动调节，快速获得专业效果</li>
+        <li><strong>批量处理</strong>：一次处理多张图片，节省时间</li>
+        <li><strong>模板复用</strong>：保存常用设置，避免重复操作</li>
+        <li><strong>实时反馈</strong>：操作即所得，减少试错成本</li>
+      </ul>
+
+      <p><strong>质量提升需求</strong></p>
+      <ul>
+        <li><strong>专业效果</strong>：AI 精修达到专业修图师水平</li>
+        <li><strong>细节保留</strong>：精修同时保留皮肤纹理、光影细节</li>
+        <li><strong>风格一致</strong>：批量处理保持统一风格</li>
+        <li><strong>自然真实</strong>：避免过度美化，保持自然感</li>
+      </ul>
+
+      <p><strong>体验优化需求</strong></p>
+      <ul>
+        <li><strong>简单易用</strong>：界面直观，操作简单</li>
+        <li><strong>流畅响应</strong>：操作无延迟，体验流畅</li>
+        <li><strong>个性化</strong>：支持自定义设置和模板</li>
+        <li><strong>社交分享</strong>：一键分享到社交平台</li>
+      </ul>
+
+      <h4>3.3.2 痛点分析</h4>
+
+      <p><strong>现有修图应用痛点</strong></p>
+      <ol>
+        <li><strong>学习成本高</strong>：专业功能复杂，新手难以上手</li>
+        <li><strong>效率低下</strong>：批量处理功能弱，重复工作多</li>
+        <li><strong>效果不稳定</strong>：AI 效果不稳定，需要多次尝试</li>
+        <li><strong>实时性差</strong>：部位调节预览延迟，操作不流畅</li>
+        <li><strong>个性化不足</strong>：无法保存和复用个人偏好设置</li>
+      </ol>
+
+      <p><strong>用户期望</strong></p>
+      <ol>
+        <li><strong>更智能</strong>：AI 理解用户意图，自动优化</li>
+        <li><strong>更高效</strong>：批量处理，一键完成</li>
+        <li><strong>更专业</strong>：效果达到专业水准</li>
+        <li><strong>更简单</strong>：操作简单，无需学习</li>
+        <li><strong>更个性</strong>：支持个人风格和模板</li>
+      </ol>
+
+      <h4>3.3.3 使用场景</h4>
+
+      <p><strong>个人场景</strong></p>
+      <ul>
+        <li><strong>社交媒体分享</strong>：美化自拍、风景照，提升社交形象</li>
+        <li><strong>旅行记录</strong>：批量处理旅行照片，快速分享</li>
+        <li><strong>个人品牌</strong>：保持统一风格，建立个人品牌</li>
+      </ul>
+
+      <p><strong>专业场景</strong></p>
+      <ul>
+        <li><strong>摄影作品精修</strong>：专业级精修，保留细节</li>
+        <li><strong>商业拍摄处理</strong>：批量处理商业拍摄素材</li>
+        <li><strong>内容创作</strong>：高效产出社交媒体内容</li>
+      </ul>
+
+      <p><strong>企业场景</strong></p>
+      <ul>
+        <li><strong>电商商品图</strong>：批量处理商品图，保持品质一致</li>
+        <li><strong>营销素材</strong>：快速产出营销图片</li>
+        <li><strong>品牌管理</strong>：统一品牌视觉形象</li>
+      </ul>
+
+      <h3>3.4 市场策略</h3>
+
+      <h4>3.4.1 目标市场选择</h4>
+
+      <p><strong>初期目标（0-6个月）</strong></p>
+      <ul>
+        <li><strong>核心用户</strong>：摄影爱好者、内容创作者</li>
+        <li><strong>市场</strong>：一线城市，18-35岁用户</li>
+        <li><strong>策略</strong>：专业功能吸引种子用户，建立口碑</li>
+      </ul>
+
+      <p><strong>中期目标（6-18个月）</strong></p>
+      <ul>
+        <li><strong>核心用户</strong>：普通用户、电商从业者</li>
+        <li><strong>市场</strong>：全国范围，全年龄段</li>
+        <li><strong>策略</strong>：简化操作，扩大用户基数</li>
+      </ul>
+
+      <p><strong>长期目标（18个月以上）</strong></p>
+      <ul>
+        <li><strong>核心用户</strong>：企业用户、专业机构</li>
+        <li><strong>市场</strong>：全球市场</li>
+        <li><strong>策略</strong>：企业版功能，B2B 市场拓展</li>
+      </ul>
+
+      <h4>3.4.2 差异化定位</h4>
+
+      <p><strong>核心差异化</strong></p>
+      <ol>
+        <li><strong>AI 精修能力</strong>：基于豆包大模型，效果更专业</li>
+        <li><strong>提示词模板化</strong>：用户可创建、保存、分享模板</li>
+        <li><strong>批量处理效率</strong>：专为批量场景优化</li>
+        <li><strong>本地实时预览</strong>：部位调节实时反馈</li>
+      </ol>
+
+      <p><strong>价值主张</strong></p>
+      <ul>
+        <li><strong>对个人用户</strong>："让每张照片都值得分享"</li>
+        <li><strong>对专业用户</strong>："专业精修，效率倍增"</li>
+        <li><strong>对企业用户</strong>："批量处理，品质如一"</li>
+      </ul>
+
+      <h4>3.4.3 营销策略</h4>
+
+      <p><strong>内容营销</strong></p>
+      <ul>
+        <li><strong>教程内容</strong>：修图技巧、提示词分享</li>
+        <li><strong>案例展示</strong>：用户作品、效果对比</li>
+        <li><strong>社区运营</strong>：用户交流、模板分享</li>
+      </ul>
+
+      <p><strong>社交媒体营销</strong></p>
+      <ul>
+        <li><strong>KOL 合作</strong>：摄影师、设计师、网红合作</li>
+        <li><strong>用户生成内容</strong>：鼓励用户分享作品</li>
+        <li><strong>话题挑战</strong>：修图挑战、模板创作比赛</li>
+      </ul>
+
+      <p><strong>渠道策略</strong></p>
+      <ul>
+        <li><strong>应用商店优化</strong>：关键词优化、评分管理</li>
+        <li><strong>预装合作</strong>：手机厂商预装合作</li>
+        <li><strong>企业直销</strong>：B2B 销售团队</li>
+      </ul>
+
+      <h4>3.4.4 定价策略</h4>
+
+      <p><strong>免费增值模式</strong></p>
+      <ul>
+        <li><strong>免费版</strong>：基础修图功能，每日有限 AI 精修次数</li>
+        <li><strong>高级版</strong>：完整功能，无限 AI 精修，批量处理</li>
+        <li><strong>专业版</strong>：企业功能，API 接入，专属支持</li>
+      </ul>
+
+      <p><strong>订阅定价</strong></p>
+      <ul>
+        <li><strong>月度订阅</strong>：¥30/月</li>
+        <li><strong>年度订阅</strong>：¥298/年（约¥24.8/月）</li>
+        <li><strong>终身买断</strong>：¥698（限时优惠）</li>
+      </ul>
+
+      <p><strong>企业定价</strong></p>
+      <ul>
+        <li><strong>团队版</strong>：¥998/年/5人</li>
+        <li><strong>企业版</strong>：按需定制</li>
+        <li><strong>API 调用</strong>：按量计费</li>
+      </ul>
+
+      <h3>3.5 市场进入计划</h3>
+
+      <h4>3.5.1 启动阶段（0-3个月）</h4>
+      <ul>
+        <li><strong>产品</strong>：MVP 版本上线（核心 AI 精修功能）</li>
+        <li><strong>用户</strong>：种子用户招募（1000人）</li>
+        <li><strong>渠道</strong>：应用商店、摄影社区</li>
+        <li><strong>目标</strong>：验证产品可行性，收集反馈</li>
+      </ul>
+
+      <h4>3.5.2 增长阶段（3-9个月）</h4>
+      <ul>
+        <li><strong>产品</strong>：功能完善（批量处理、模板系统）</li>
+        <li><strong>用户</strong>：用户增长（10万 DAU）</li>
+        <li><strong>渠道</strong>：社交媒体、KOL 合作</li>
+        <li><strong>目标</strong>：建立品牌认知，扩大市场份额</li>
+      </ul>
+
+      <h4>3.5.3 扩展阶段（9-18个月）</h4>
+      <ul>
+        <li><strong>产品</strong>：企业版功能上线</li>
+        <li><strong>用户</strong>：用户规模（100万 DAU）</li>
+        <li><strong>渠道</strong>：企业直销、渠道合作</li>
+        <li><strong>目标</strong>：市场领导地位，商业化成熟</li>
+      </ul>
+
+      <h4>3.5.4 成熟阶段（18个月以上）</h4>
+      <ul>
+        <li><strong>产品</strong>：全球化版本</li>
+        <li><strong>用户</strong>：全球市场（1000万 DAU）</li>
+        <li><strong>渠道</strong>：全球化运营</li>
+        <li><strong>目标</strong>：行业标准，生态建设</li>
+      </ul>
+
+      <h3>3.6 风险评估</h3>
+
+      <h4>3.6.1 市场风险</h4>
+      <ul>
+        <li><strong>竞争加剧</strong>：大公司入局，竞争压力增大</li>
+        <li><strong>用户获取成本上升</strong>：市场成熟，获客成本增加</li>
+        <li><strong>技术迭代快速</strong>：需要持续投入研发</li>
+      </ul>
+
+      <h4>3.6.2 产品风险</h4>
+      <ul>
+        <li><strong>AI 效果不稳定</strong>：模型效果波动，影响用户体验</li>
+        <li><strong>性能瓶颈</strong>：移动端 AI 性能限制</li>
+        <li><strong>兼容性问题</strong>：不同设备适配问题</li>
+      </ul>
+
+      <h4>3.6.3 运营风险</h4>
+      <ul>
+        <li><strong>内容安全</strong>：AI 生成内容审核</li>
+        <li><strong>用户隐私</strong>：数据安全与隐私保护</li>
+        <li><strong>服务质量</strong>：API 稳定性与响应速度</li>
+      </ul>
+
+      <h4>3.6.4 商业风险</h4>
+      <ul>
+        <li><strong>付费转化率</strong>：用户付费意愿不确定</li>
+        <li><strong>盈利模式</strong>：商业化路径需要验证</li>
+        <li><strong>资金需求</strong>：研发与市场投入较大</li>
+      </ul>
+
+      <h3>3.7 成功指标</h3>
+
+      <h4>3.7.1 市场指标</h4>
+      <ul>
+        <li><strong>用户规模</strong>：DAU、MAU、累计用户数</li>
+        <li><strong>市场份额</strong>：细分市场占有率</li>
+        <li><strong>品牌认知</strong>：品牌知名度、美誉度</li>
+      </ul>
+
+      <h4>3.7.2 产品指标</h4>
+      <ul>
+        <li><strong>用户满意度</strong>：NPS 评分、应用商店评分</li>
+        <li><strong>用户留存</strong>：次日留存、7日留存、30日留存</li>
+        <li><strong>功能使用率</strong>：各功能使用频率</li>
+      </ul>
+
+      <h4>3.7.3 商业指标</h4>
+      <ul>
+        <li><strong>收入</strong>：订阅收入、API 调用收入</li>
+        <li><strong>成本</strong>：用户获取成本、运营成本</li>
+        <li><strong>盈利</strong>：毛利率、净利润</li>
+      </ul>
+
+      <h4>3.7.4 运营指标</h4>
+      <ul>
+        <li><strong>用户增长</strong>：新增用户数、增长率</li>
+        <li><strong>活跃度</strong>：日均使用时长、使用频次</li>
+        <li><strong>传播性</strong>：分享率、邀请转化率</li>
+      </ul>
+    </section>
+
+    <hr class="section-divider">
+
+    <section id="section-4">
+      <h2>四、附录</h2>
+
+      <h3>4.1 豆包 Doubao-Seedream-5.0-pro 模型能力</h3>
+
+      <h4>4.1.1 模型概述</h4>
+      <ul>
+        <li><strong>模型名称</strong>：Doubao-Seedream-5.0-pro (Model ID: doubao-seedream-5-0-pro-260628)</li>
+        <li><strong>开发商</strong>：字节跳动 Seed 团队</li>
+        <li><strong>定位</strong>：多模态图像创作模型，不止"生成"，更懂"设计"</li>
+        <li><strong>核心能力</strong>：复杂信息可视化、交互式精准编辑、真实影像与人像质感、原生多语种输入与生成</li>
+      </ul>
+
+      <h4>4.1.2 核心技术特性</h4>
+      <ol>
+        <li><strong>交互式精准编辑</strong>
+          <ul>
+            <li>基于空间位置与区域语义理解</li>
+            <li>支持点选、圈选、草图渲染</li>
+            <li>色彩与材质替换</li>
+            <li>图层分离、多图融合</li>
+            <li>像素级编辑能力</li>
+          </ul>
+        </li>
+        <li><strong>真实影像与人像质感</strong>
+          <ul>
+            <li>还原现实世界的光影、材质与皮肤肌理</li>
+            <li>兼顾 CG 表现与摄影质感</li>
+            <li>画面更具生命力</li>
+          </ul>
+        </li>
+        <li><strong>意图理解能力</strong>
+          <ul>
+            <li>无需繁复详尽的词句铺垫</li>
+            <li>凭借简略信息即可捕捉潜藏画面</li>
+            <li>将无形的遐想凝作清晰鲜活的图像</li>
+          </ul>
+        </li>
+        <li><strong>多图融合创作</strong>
+          <ul>
+            <li>支持文本、单图和多图输入</li>
+            <li>基于主体一致性的多图融合创作</li>
+            <li>图像编辑、组图生成等多样玩法</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h4>4.1.3 API 调用信息</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>详情</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>输入类型</td>
+            <td>图片、文本</td>
+          </tr>
+          <tr>
+            <td>输出类型</td>
+            <td>图片、文本</td>
+          </tr>
+          <tr>
+            <td>任务类型</td>
+            <td>文生图、图生图</td>
+          </tr>
+          <tr>
+            <td>输出图尺寸</td>
+            <td>≤ 261万像素</td>
+          </tr>
+          <tr>
+            <td>输入图定价</td>
+            <td>首张免费，后续 0.02元/张</td>
+          </tr>
+          <tr>
+            <td>输出图定价</td>
+            <td>0.3元/张</td>
+          </tr>
+          <tr>
+            <td>限制</td>
+            <td>IPM 500</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>4.2 市场调研数据来源</h3>
+      <ul>
+        <li>行业报告（The Market Intelligence, Growth Market Reports）</li>
+        <li>竞品官方数据</li>
+        <li>用户调研数据</li>
+        <li>行业专家访谈</li>
+      </ul>
+
+      <h3>4.3 术语表</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>术语</th>
+            <th>全称</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PRD</td>
+            <td>Product Requirements Document</td>
+            <td>产品需求文档</td>
+          </tr>
+          <tr>
+            <td>MRD</td>
+            <td>Market Requirements Document</td>
+            <td>市场需求文档</td>
+          </tr>
+          <tr>
+            <td>AI</td>
+            <td>Artificial Intelligence</td>
+            <td>人工智能</td>
+          </tr>
+          <tr>
+            <td>API</td>
+            <td>Application Programming Interface</td>
+            <td>应用程序接口</td>
+          </tr>
+          <tr>
+            <td>UI</td>
+            <td>User Interface</td>
+            <td>用户界面</td>
+          </tr>
+          <tr>
+            <td>UX</td>
+            <td>User Experience</td>
+            <td>用户体验</td>
+          </tr>
+          <tr>
+            <td>DAU</td>
+            <td>Daily Active Users</td>
+            <td>日活跃用户数</td>
+          </tr>
+          <tr>
+            <td>MAU</td>
+            <td>Monthly Active Users</td>
+            <td>月活跃用户数</td>
+          </tr>
+          <tr>
+            <td>CAGR</td>
+            <td>Compound Annual Growth Rate</td>
+            <td>年复合增长率</td>
+          </tr>
+          <tr>
+            <td>NPS</td>
+            <td>Net Promoter Score</td>
+            <td>净推荐值</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>4.4 参考文献</h3>
+      <ol>
+        <li>Photo Retouching Software Market Report 2024-2033</li>
+        <li>Mobile Photo Editing Apps Market Report 2025-2034</li>
+        <li>豆包 Doubao-Seedream-5.0-pro 技术文档</li>
+        <li>美图公司 2024 年度报告</li>
+        <li>QuestMobile 2025 年移动互联网报告</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="doc-footer">
+    <p>本文档为图片精修废片修复手机应用的产品需求文档与市场需求文档，版权所有 © 2026</p>
+  </footer>
+</body>
+</html>

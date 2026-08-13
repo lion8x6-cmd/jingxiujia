@@ -1,0 +1,92 @@
+<view class="page">
+  <view class="profile-header">
+    <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+      <image class="avatar" src="{{userInfo.avatarUrl || defaultAvatar}}" mode="aspectFill"></image>
+    </button>
+    <view class="profile-main">
+      <input
+        class="nickname"
+        type="nickname"
+        value="{{userInfo.nickName || ''}}"
+        placeholder="点击设置昵称"
+        placeholder-class="nickname-placeholder"
+        bindblur="onNicknameBlur"
+      />
+      <view class="user-sub">微信用户 · 让废片变大片</view>
+    </view>
+  </view>
+
+  <view class="member-card {{member.active ? 'active' : ''}}" bindtap="openMember">
+    <view class="member-main">
+      <view class="member-top">
+        <text class="member-badge">{{member.active ? 'PRO会员' : '未开通会员'}}</text>
+        <text class="member-action">{{member.active ? '会员权益' : '立即开通'}}</text>
+      </view>
+      <view class="member-desc">{{member.active ? member.expireText : '无限精修、批量处理、高清无水印'}}</view>
+    </view>
+    <view class="member-icon">{{member.active ? '👑' : '✨'}}</view>
+  </view>
+
+  <view class="stats-card">
+    <view class="stat-item" bindtap="goRecords">
+      <text class="stat-num">{{stats.completedCount}}</text>
+      <text class="stat-label">已精修</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="goAlbum">
+      <text class="stat-num">{{stats.albumCount}}</text>
+      <text class="stat-label">云相册</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{stats.savedTime}}</text>
+      <text class="stat-label">约省分钟</text>
+    </view>
+  </view>
+
+  <view class="menu-section">
+    <view class="section-title">创作中心</view>
+    <view class="menu-card">
+      <view class="menu-item" wx:for="{{createMenus}}" wx:key="key" bindtap="onMenuTap" data-key="{{item.key}}">
+        <text class="menu-icon">{{item.icon}}</text>
+        <text class="menu-title">{{item.title}}</text>
+        <text class="menu-desc">{{item.desc}}</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="menu-section">
+    <view class="section-title">帮助与设置</view>
+    <view class="menu-card">
+      <view class="menu-item" wx:for="{{settingMenus}}" wx:key="key" bindtap="onMenuTap" data-key="{{item.key}}">
+        <text class="menu-icon">{{item.icon}}</text>
+        <text class="menu-title">{{item.title}}</text>
+        <text class="menu-desc">{{item.desc}}</text>
+        <text class="menu-arrow" wx:if="{{item.key !== 'contact'}}">›</text>
+        <button wx:else class="contact-btn" open-type="contact">联系</button>
+      </view>
+    </view>
+  </view>
+
+  <button class="logout-btn" bindtap="logout" wx:if="{{isLogin}}">退出登录</button>
+  <view class="version">精修家 v1.0.0</view>
+
+  <view class="modal-mask" wx:if="{{showMember}}" bindtap="closeMember"></view>
+  <view class="member-modal" wx:if="{{showMember}}">
+    <view class="modal-header">
+      <text class="modal-title">PRO会员权益</text>
+      <text class="modal-close" bindtap="closeMember">×</text>
+    </view>
+    <view class="benefit-list">
+      <view class="benefit-item" wx:for="{{benefits}}" wx:key="title">
+        <text class="benefit-icon">{{item.icon}}</text>
+        <view>
+          <view class="benefit-title">{{item.title}}</view>
+          <view class="benefit-desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </view>
+    <button class="btn-primary member-confirm" bindtap="closeMember">我知道了</button>
+  </view>
+</view>

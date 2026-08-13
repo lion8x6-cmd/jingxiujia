@@ -1,0 +1,33 @@
+.ring-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.ring-center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ring-percent {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.ring-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}

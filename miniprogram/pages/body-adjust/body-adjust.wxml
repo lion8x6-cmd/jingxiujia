@@ -1,0 +1,48 @@
+<view class="page">
+  <view class="preview-area">
+    <image class="preview-img" src="{{imageSrc}}" mode="aspectFit"></image>
+    <view class="preview-badge" wx:if="{{hasAdjustments}}">已调整 {{adjustedCount}} 项</view>
+  </view>
+
+  <view class="control-panel">
+    <scroll-view scroll-x class="parts-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="part-chip {{selectedPart === item.id ? 'active' : ''}}"
+            wx:for="{{bodyParts}}" wx:key="id"
+            bindtap="selectPart" data-id="{{item.id}}">
+        <text class="part-icon">{{item.icon}}</text>
+        <text class="part-name">{{item.name}}</text>
+        <text class="part-value" wx:if="{{adjustments[item.id]}}">
+          {{adjustments[item.id] > 0 ? '+' : ''}}{{adjustments[item.id]}}%
+        </text>
+      </view>
+    </scroll-view>
+
+    <view class="slider-section" wx:if="{{selectedPart}}">
+      <view class="slider-header">
+        <text class="slider-label">{{currentPartName}}强度</text>
+        <text class="slider-value {{adjustments[selectedPart] < 0 ? 'neg' : adjustments[selectedPart] > 0 ? 'pos' : ''}}">
+          {{adjustments[selectedPart] > 0 ? '+' : ''}}{{adjustments[selectedPart] || 0}}%
+        </text>
+      </view>
+      <dual-slider value="{{adjustments[selectedPart] || 0}}" bind:change="onSliderChange" bind:afterchange="onSliderAfter"/>
+      <view class="slider-hint">左滑减弱（红色） · 右滑增强（绿色） · 默认0居中</view>
+    </view>
+
+    <view class="active-adjustments" wx:if="{{hasAdjustments}}">
+      <view class="adj-title">已调整部位</view>
+      <view class="adj-tags">
+        <view class="adj-tag" wx:for="{{activeList}}" wx:key="id" bindtap="selectPart" data-id="{{item.id}}">
+          <text>{{item.name}} {{item.value > 0 ? '+' : ''}}{{item.value}}%</text>
+          <text class="adj-remove" catchtap="removeAdjustment" data-id="{{item.id}}">×</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="action-row">
+      <button class="btn-reset" bindtap="resetAll" disabled="{{!hasAdjustments}}">重置</button>
+      <button class="btn-submit" bindtap="submitAdjust" disabled="{{!hasAdjustments || submitting}}">
+        {{submitting ? '提交中...' : '提交处理'}}
+      </button>
+    </view>
+  </view>
+</view>

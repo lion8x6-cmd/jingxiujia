@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "效果对比",
+  "usingComponents": {
+    "dual-slider": "/components/dual-slider/dual-slider"
+  }
+}

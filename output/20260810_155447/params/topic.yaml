@@ -1,0 +1,10 @@
+detected_doc_type: "技术产品文档"
+target_length: 5000
+target_tone: "正式，专业，技术导向"
+core_info_points:
+  - "产品定位：图片精修、废片修复手机应用"
+  - "核心技术：豆包 Doubao-Seedream-5.0-pro 模型"
+  - "核心功能：人像精修、提示词模板、批量修图、实时进度、基础调节、部位快捷调节"
+  - "技术实现：云端 AI 精修 + 本地 AI 实时预览"
+  - "目标用户：普通用户、摄影爱好者、电商从业者"
+user_requirements: "创建 PRD（产品需求文档）和 MRD（市场需求文档）"

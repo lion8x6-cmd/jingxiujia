@@ -1,0 +1,173 @@
+// 云相册页 - 永久保存、预览、批量管理、保存到手机
+const storage = require('../../utils/storage.js');
+
+const TYPE_NAME_MAP = {
+  retouch: 'AI精修',
+  'text-edit': '无痕改字',
+  cutout: '智能抠图',
+  erase: '智能消除',
+  'body-adjust': '部位调节'
+};
+
+Page({
+  data: {
+    album: [],
+    selectMode: false,
+    selectedMap: {},
+    selectedCount: 0,
+    allSelected: false
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 });
+    }
+    this.loadAlbum();
+  },
+
+  loadAlbum() {
+    const raw = storage.getAlbum();
+    const album = raw.map(item => ({
+      ...item,
+      typeName: TYPE_NAME_MAP[item.type] || ''
+    }));
+    this.setData({ album });
+    if (this.data.selectMode) this.recalcSelection();
+  },
+
+  onPullDownRefresh() {
+    this.loadAlbum();
+    wx.stopPullDownRefresh();
+  },
+
+  // 点击图片：非选择模式预览，选择模式切换选中
+  onTapItem(e) {
+    const { id, src } = e.currentTarget.dataset;
+    if (this.data.selectMode) {
+      this.toggleSelectOne(id);
+    } else {
+      const urls = this.data.album.map(a => a.src);
+      wx.previewImage({ current: src, urls });
+    }
+  },
+
+  toggleSelect() {
+    const selectMode = !this.data.selectMode;
+    this.setData({
+      selectMode,
+      selectedMap: {},
+      selectedCount: 0,
+      allSelected: false
+    });
+  },
+
+  toggleSelectOne(id) {
+    const selectedMap = { ...this.data.selectedMap };
+    if (selectedMap[id]) {
+      delete selectedMap[id];
+    } else {
+      selectedMap[id] = true;
+    }
+    this.setData({ selectedMap });
+    this.recalcSelection();
+  },
+
+  selectAll() {
+    if (this.data.allSelected) {
+      this.setData({ selectedMap: {} });
+    } else {
+      const selectedMap = {};
+      this.data.album.forEach(a => { selectedMap[a.id] = true; });
+      this.setData({ selectedMap });
+    }
+    this.recalcSelection();
+  },
+
+  recalcSelection() {
+    const total = this.data.album.length;
+    const count = Object.keys(this.data.selectedMap).length;
+    this.setData({
+      selectedCount: count,
+      allSelected: total > 0 && count === total
+    });
+  },
+
+  getSelectedItems() {
+    return this.data.album.filter(a => this.data.selectedMap[a.id]);
+  },
+
+  // 保存选中的图片到手机相册（网络图先下载）
+  saveSelectedToPhone() {
+    const items = this.getSelectedItems();
+    if (!items.length) return;
+
+    wx.showLoading({ title: '保存中...', mask: true });
+    let done = 0;
+    let fail = 0;
+
+    const saveOne = (src) => {
+      return new Promise((resolve) => {
+        const doSave = (localPath) => {
+          wx.saveImageToPhotosAlbum({
+            filePath: localPath,
+            success: () => { done++; resolve(); },
+            fail: () => { fail++; resolve(); }
+          });
+        };
+
+        if (src.startsWith('http://') || src.startsWith('https://')) {
+          wx.downloadFile({
+            url: src,
+            success: (res) => {
+              if (res.statusCode === 200) doSave(res.tempFilePath);
+              else { fail++; resolve(); }
+            },
+            fail: () => { fail++; resolve(); }
+          });
+        } else {
+          doSave(src);
+        }
+      });
+    };
+
+    Promise.all(items.map(i => saveOne(i.src))).then(() => {
+      wx.hideLoading();
+      wx.showToast({
+        title: fail === 0 ? `已保存${done}张` : `成功${done}张,失败${fail}张`,
+        icon: 'none'
+      });
+      this.toggleSelect();
+    });
+  },
+
+  deleteSelected() {
+    const items = this.getSelectedItems();
+    if (!items.length) return;
+
+    wx.showModal({
+      title: '删除图片',
+      content: `确定从云相册删除${items.length}张图片？删除后不可恢复。`,
+      confirmText: '删除',
+      confirmColor: '#E24B4A',
+      success: (res) => {
+        if (!res.confirm) return;
+        items.forEach(i => storage.removeFromAlbum(i.id));
+        wx.showToast({ title: '已删除', icon: 'none' });
+        this.toggleSelect();
+        this.loadAlbum();
+      }
+    });
+  },
+
+  goHome() {
+    wx.switchTab({ url: '/pages/index/index' });
+  },
+
+  // 分享单个图片（右上角菜单）
+  onShareAppMessage() {
+    return {
+      title: '我用精修家修的图，来看看吧',
+      path: '/pages/index/index'
+    };
+  }
+});

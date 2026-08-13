@@ -1,0 +1,13 @@
+topic: "图片精修废片修复手机应用技术方案与市场分析"
+tools: ["web_search"]
+scope: "web"
+max_loops: 2
+min_facts_required: 5
+gap_check_strict: "relaxed"
+search_dimensions:
+  - "豆包 Doubao-Seedream-5.0-pro 模型能力"
+  - "图片精修应用市场现状"
+  - "AI 图片处理技术方案"
+  - "移动端 AI 图片处理实现"
+tier_priority: []
+snapshot_path: "output/research/image-retouching-app-research.md"

@@ -1,0 +1,48 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/ai-retouch/ai-retouch",
+    "pages/progress/progress",
+    "pages/compare/compare",
+    "pages/text-edit/text-edit",
+    "pages/cutout/cutout",
+    "pages/erase/erase",
+    "pages/body-adjust/body-adjust",
+    "pages/records/records",
+    "pages/album/album",
+    "pages/mine/mine"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "精修家",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f7f7",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#07C160",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/records/records",
+        "text": "生成记录"
+      },
+      {
+        "pagePath": "pages/album/album",
+        "text": "云相册"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

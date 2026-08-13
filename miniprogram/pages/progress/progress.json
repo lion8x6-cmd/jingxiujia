@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "正在处理",
+  "usingComponents": {
+    "ring-progress": "/components/ring-progress/ring-progress"
+  }
+}

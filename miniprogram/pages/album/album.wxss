@@ -1,0 +1,38 @@
+.page { min-height: 100vh; background: #f7f7f7; padding-bottom: 200rpx; }
+
+/* 顶部 */
+.header { display: flex; align-items: center; justify-content: space-between; padding: 24rpx 32rpx 16rpx; }
+.header-count { font-size: 32rpx; font-weight: 600; color: #1a1a1a; }
+.header-hint { display: block; font-size: 22rpx; color: #999; margin-top: 4rpx; }
+.manage-btn { font-size: 28rpx; color: #07C160; padding: 8rpx 20rpx; }
+
+/* 空状态 */
+.empty-state { display: flex; flex-direction: column; align-items: center; padding: 200rpx 0; }
+.empty-icon { font-size: 120rpx; margin-bottom: 24rpx; opacity: 0.6; }
+.empty-text { font-size: 30rpx; color: #666; margin-bottom: 12rpx; }
+.empty-desc { font-size: 24rpx; color: #bbb; margin-bottom: 48rpx; }
+.empty-btn { background: #07C160; color: #fff; border-radius: 48rpx; font-size: 28rpx; padding: 16rpx 64rpx; border: none; }
+.empty-btn::after { border: none; }
+
+/* 网格 */
+.album-grid { display: flex; flex-wrap: wrap; padding: 0 16rpx; }
+.grid-item { position: relative; width: calc(33.333% - 16rpx); margin: 8rpx; aspect-ratio: 1; border-radius: 12rpx; overflow: hidden; background: #eee; }
+.grid-item image { width: 100%; height: 100%; display: block; }
+.grid-item.selected { outline: 6rpx solid #07C160; outline-offset: -6rpx; }
+
+.item-check { position: absolute; top: 12rpx; right: 12rpx; z-index: 2; }
+.check-circle { width: 40rpx; height: 40rpx; border-radius: 50%; border: 3rpx solid #fff; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24rpx; font-weight: bold; box-sizing: border-box; }
+.check-circle.checked { background: #07C160; border-color: #07C160; }
+
+.item-type { position: absolute; left: 0; bottom: 0; right: 0; padding: 6rpx 12rpx; background: linear-gradient(transparent, rgba(0,0,0,0.6)); color: #fff; font-size: 20rpx; }
+
+/* 底部操作栏 */
+.bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 16rpx 32rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06); z-index: 100; }
+.bar-left { display: flex; align-items: center; gap: 12rpx; }
+.bar-text { font-size: 26rpx; color: #333; }
+.bar-right { display: flex; gap: 16rpx; }
+.bar-btn { font-size: 26rpx; padding: 14rpx 32rpx; border-radius: 40rpx; border: none; line-height: 1.4; margin: 0; }
+.bar-btn::after { border: none; }
+.btn-save { background: #07C160; color: #fff; }
+.btn-delete { background: #FCEBEB; color: #E24B4A; }
+.bar-btn[disabled] { opacity: 0.4; }

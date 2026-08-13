@@ -1,0 +1,176 @@
+<view class="page">
+  <!-- 图片预览区：catchtouchmove 阻止放大拖动时页面滚动穿透 -->
+  <view class="stage"
+        bindtouchstart="onStageTouchStart"
+        bindtouchend="onStageTouchEnd"
+        catchtouchmove="onStageTouchMove"
+        bindtouchcancel="onStageTouchCancel"
+        bindlongpress="onStageLongPress">
+    <image class="stage-img {{imgAnim ? 'anim' : ''}}" style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});" src="{{showOriginal ? currentItem.originalUrl : displayUrl}}" mode="aspectFit" bindload="onImgLoad"></image>
+
+    <!-- 左上角：当前版本标签 -->
+    <view class="version-label">{{showOriginal ? '原图（预览）' : versionLabel}}</view>
+
+    <!-- 右上角按钮组：查看原图（点按切换/长按预览）/ 删除 -->
+    <view class="stage-top-actions" wx:if="{{!generating}}">
+      <view class="origin-toggle {{showOriginal ? 'active' : ''}}"
+            catchtap="toggleOriginal"
+            catchlongpress="onBtnLongPress"
+            bindtouchend="releaseOriginal"
+            bindtouchcancel="releaseOriginal">
+        <text class="eye-icon"></text>
+        <text>{{showOriginal ? '返回精修' : '查看原图'}}</text>
+      </view>
+      <view class="delete-btn" wx:if="{{canDeleteCurrent}}" catchtap="deleteCurrent">
+        <text class="delete-ico">🗑</text>
+      </view>
+    </view>
+
+    <!-- 左右切换批次图片箭头 -->
+    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1}}" catchtap="goPrev">
+      <text>‹</text>
+    </view>
+    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1}}" catchtap="goNext">
+      <text>›</text>
+    </view>
+
+    <!-- 底部版本控制栏 -->
+    <view class="version-bar" wx:if="{{!generating}}">
+      <view class="ver-nav {{!canGoBack ? 'disabled' : ''}}" catchtap="goVersionBack">
+        <text class="ver-nav-ico">‹</text>
+      </view>
+      <view class="prompt-btn" wx:if="{{versionLabel !== '原图'}}" catchtap="showPrompt">
+        <text>查看提示词</text>
+      </view>
+      <view class="prompt-btn prompt-btn-placeholder" wx:else></view>
+      <view class="ver-nav {{!canGoForward ? 'disabled' : ''}}" catchtap="goVersionForward">
+        <text class="ver-nav-ico">›</text>
+      </view>
+    </view>
+
+    <view class="stage-loading" wx:if="{{generating}}">
+      <view class="loading-mask"></view>
+      <view class="loading-box">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">生成中 {{genProgressText}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 批量缩略图导航：保存弹窗打开时提到遮罩之上，确保可点击勾选 -->
+  <scroll-view scroll-x class="batch-nav {{showSaveSheet ? 'above-mask' : ''}}" wx:if="{{isBatch && batchItems.length > 1}}" enhanced show-scrollbar="{{false}}">
+    <view class="batch-thumb {{idx === currentIndex ? 'active' : ''}} {{item.status === 'failed' ? 'fail' : ''}}"
+          wx:for="{{batchItems}}" wx:key="id" wx:for-index="idx"
+          bindtap="onThumbTap" data-idx="{{idx}}">
+      <image src="{{item.resultUrl || item.originalUrl}}" mode="aspectFill"></image>
+      <!-- 非保存面板：当前选中指示 -->
+      <text class="batch-check" wx:if="{{!showSaveSheet && idx === currentIndex}}">✓</text>
+      <!-- 保存面板打开时：勾选圈 -->
+      <view class="batch-save-check {{selectedSaveMap[item.id] ? 'checked' : ''}}" wx:if="{{showSaveSheet}}">
+        <text wx:if="{{selectedSaveMap[item.id]}}">✓</text>
+      </view>
+      <text class="batch-fail-dot" wx:if="{{item.status === 'failed'}}">!</text>
+    </view>
+  </scroll-view>
+
+  <!-- 模式切换：快捷调节 / AI 调节 -->
+  <view class="mode-tabs">
+    <view class="mode-tab {{adjustMode === 'quick' ? 'on' : ''}}" bindtap="switchMode" data-mode="quick">快捷调节</view>
+    <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">AI 调节</view>
+  </view>
+
+  <!-- 调节面板容器（固定高度，用 hidden 避免 wx:if 销毁重建 textarea 导致闪烁） -->
+  <view class="adjust-wrap">
+    <!-- 快捷调节面板 -->
+    <view class="adjust-panel" hidden="{{adjustMode !== 'quick'}}">
+      <scroll-view scroll-x class="parts-scroll" enhanced show-scrollbar="{{false}}">
+        <view class="part-chip {{selectedPart === item.id ? 'active' : ''}}"
+              wx:for="{{bodyParts}}" wx:key="id"
+              bindtap="selectPart" data-id="{{item.id}}">
+          <text class="part-name">{{item.name}}</text>
+          <text class="part-value" wx:if="{{adjustments[item.id]}}">
+            {{adjustments[item.id] > 0 ? '+' : ''}}{{adjustments[item.id]}}
+          </text>
+        </view>
+      </scroll-view>
+
+      <view class="slider-row" wx:if="{{selectedPart}}">
+        <text class="slider-label">{{currentPartName}}</text>
+        <view class="slider-wrap">
+          <dual-slider value="{{adjustments[selectedPart] || 0}}" bind:change="onSliderChange" bind:afterchange="onSliderAfter"/>
+        </view>
+        <text class="slider-val {{(adjustments[selectedPart]||0) < 0 ? 'neg' : (adjustments[selectedPart]||0) > 0 ? 'pos' : ''}}">
+          {{(adjustments[selectedPart]||0) > 0 ? '+' : ''}}{{adjustments[selectedPart] || 0}}
+        </text>
+      </view>
+    </view>
+
+    <!-- AI 调节面板（对话式） -->
+    <view class="ai-panel" hidden="{{adjustMode !== 'ai'}}">
+      <view class="ai-tip">告诉 AI 你想怎么调，例如："皮肤再白皙一点，背景虚化一些"</view>
+      <textarea class="ai-input"
+                placeholder="用一句话描述你想要的调整效果..."
+                placeholder-class="ai-placeholder"
+                value="{{aiPrompt}}"
+                bindinput="onAiPromptInput"
+                maxlength="200"
+                auto-height
+                show-confirm-bar="{{false}}"
+                adjust-position="{{true}}"/>
+      <view class="ai-quick">
+        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="皮肤更白皙通透">皮肤更白皙</view>
+        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="背景虚化，突出人物">背景虚化</view>
+        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="增强光影质感，更有电影感">电影感</view>
+        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="牙齿更白，笑容更自然">美白牙齿</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提交 + 保存 按钮行 -->
+  <view class="btn-row">
+    <button class="btn-submit" bindtap="submitAdjust" disabled="{{!canSubmit || generating}}">
+      <text wx:if="{{!generating}}">✨ 提交修改并生成图片</text>
+      <text wx:else>生成中 {{genProgressText}}%</text>
+    </button>
+    <view class="btn-save" bindtap="onSaveBtnTap" hover-class="btn-save-hover" hover-stay-time="80">
+      <text class="save-ico">↓</text>
+      <text class="save-txt">保存图片</text>
+    </view>
+  </view>
+
+  <!-- 保存底部弹窗 ActionSheet -->
+  <view class="sheet-mask" wx:if="{{showSaveSheet}}" bindtap="closeSaveSheet"></view>
+  <view class="sheet {{showSaveSheet ? 'show' : ''}}">
+    <!-- 批量模式：先选图片 -->
+    <block wx:if="{{isBatch && batchItems.length > 1}}">
+      <view class="sheet-pick-head">
+        <text class="sheet-pick-title">选择要保存的图片（已选 {{selectedSaveIds.length}} 张）</text>
+        <view class="sheet-pick-all" bindtap="toggleSelectAllSave">{{isAllSaveSelected ? '取消全选' : '全选'}}</view>
+      </view>
+      <view class="sheet-group">
+        <view class="sheet-item" bindtap="batchSaveToLocal" hover-class="sheet-item-hover" hover-stay-time="80">保存至本地相册</view>
+        <view class="sheet-item" bindtap="batchSaveToCloud" hover-class="sheet-item-hover" hover-stay-time="80">保存到云相册</view>
+        <button class="sheet-item sheet-item-btn sheet-item-last" open-type="share" bindtap="closeSaveSheet" hover-class="sheet-item-hover">分享给好友</button>
+      </view>
+    </block>
+    <!-- 单张模式 -->
+    <block wx:else>
+      <view class="sheet-group">
+        <view class="sheet-item" bindtap="saveToLocal" hover-class="sheet-item-hover" hover-stay-time="80">保存图片至本地</view>
+        <button class="sheet-item sheet-item-btn" open-type="share" bindtap="closeSaveSheet" hover-class="sheet-item-hover">分享给好友</button>
+        <view class="sheet-item sheet-item-last" bindtap="saveToAlbum" hover-class="sheet-item-hover" hover-stay-time="80">保存到云相册</view>
+      </view>
+    </block>
+    <view class="sheet-cancel" bindtap="closeSaveSheet" hover-class="sheet-item-hover" hover-stay-time="80">取消</view>
+  </view>
+
+  <!-- 提示词弹窗 -->
+  <view class="prompt-mask" wx:if="{{showPromptModal}}" bindtap="closePrompt"></view>
+  <view class="prompt-modal {{showPromptModal ? 'show' : ''}}" catchtap="">
+    <view class="prompt-modal-title">本版提示词</view>
+    <scroll-view scroll-y class="prompt-modal-body">
+      <text class="prompt-modal-text">{{promptContent}}</text>
+    </scroll-view>
+    <view class="prompt-modal-close" bindtap="closePrompt" hover-class="prompt-modal-close-hover">知道了</view>
+  </view>
+</view>

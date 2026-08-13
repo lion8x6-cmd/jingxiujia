@@ -1,0 +1,80 @@
+<view class="page">
+  <view class="warn-banner">
+    <view class="warn-icon">⚠️</view>
+    <view class="warn-text">
+      <text class="warn-title">图片仅保存7天，到期自动销毁</text>
+      <text class="warn-desc">请及时保存或转存到云相册永久保留</text>
+    </view>
+  </view>
+
+  <!-- 顶部操作栏：管理模式下固定在顶部不随页面滚动 -->
+  <view class="top-bar {{selectMode ? 'top-bar-sticky' : ''}}" wx:if="{{records.length > 0}}">
+    <view class="batch-actions" wx:if="{{!selectMode}}">
+      <button class="btn-save-all" bindtap="saveAllToAlbum">一键全部转存云相册</button>
+    </view>
+    <view class="select-actions" wx:else>
+      <view class="select-count">已选 {{selectedIds.length}} 项</view>
+      <view class="select-btns">
+        <view class="link-btn" bindtap="selectAll">{{isAllSelected ? '取消全选' : '全选'}}</view>
+        <view class="link-btn danger" bindtap="deleteSelected">删除</view>
+      </view>
+    </view>
+    <view class="manage-btn" bindtap="toggleSelectMode">
+      {{selectMode ? '退出' : '管理'}}
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{records.length === 0}}">
+    <view class="empty-icon">📋</view>
+    <text class="empty-text">暂无生成记录</text>
+    <button class="empty-btn" bindtap="goHome">去精修图片</button>
+  </view>
+
+  <view class="record-list {{selectMode ? 'record-list-padded' : ''}}" wx:else>
+    <block wx:for="{{groupedRecords}}" wx:key="title" wx:for-item="group">
+      <view class="date-header">{{group.title}}</view>
+      <view class="record-card {{item.isExpiring ? 'expiring' : ''}} {{selectMode ? 'select-mode' : ''}}"
+            wx:for="{{group.items}}" wx:key="id" wx:for-item="item"
+            bindtap="onCardTap" bindlongpress="onCardLongPress" data-id="{{item.id}}">
+        <!-- 多选模式下的勾选圈 -->
+        <view class="check-circle {{selectedIdsMap[item.id] ? 'checked' : ''}}" wx:if="{{selectMode}}">
+          <text wx:if="{{selectedIdsMap[item.id]}}">✓</text>
+        </view>
+
+        <view class="record-thumb">
+          <image src="{{item.resultUrl || item.originalUrl}}" mode="aspectFill"></image>
+          <!-- 处理中小菊花：不遮挡主体，放右上角 -->
+          <view class="thumb-corner processing" wx:if="{{item.showSpinner}}">
+            <view class="mini-spinner"></view>
+          </view>
+        </view>
+
+        <view class="record-info">
+          <view class="record-title-row">
+            <text class="record-title">{{item.typeName}} · {{item.batchText}}</text>
+            <!-- 状态标签：放在标题右侧，不再压在图片上 -->
+            <text class="status-tag tag-completed" wx:if="{{item.status === 'completed'}}">已完成</text>
+            <text class="status-tag tag-failed" wx:elif="{{item.statusClass === 'failed'}}">{{item.statusText}}</text>
+            <text class="status-tag tag-processing" wx:elif="{{item.showSpinner}}">{{item.statusText}}</text>
+          </view>
+          <view class="record-meta">
+            <text class="record-time">{{item.createdAtText}}</text>
+            <text class="record-expire-inline" wx:if="{{item.remainingText}}">
+              <text class="{{item.isExpiring ? 'text-warn' : 'text-muted'}}">{{item.remainingText}}</text>
+              <text class="saved-badge" wx:if="{{item.savedToAlbum}}">已转存</text>
+            </text>
+          </view>
+        </view>
+        <view class="record-arrow" wx:if="{{!selectMode}}">›</view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 多选模式下的底部操作条 -->
+  <view class="bottom-bar" wx:if="{{selectMode}}">
+    <button class="bottom-btn" bindtap="selectAll">{{isAllSelected ? '取消全选' : '全选'}}</button>
+    <button class="bottom-btn bottom-btn-danger" bindtap="deleteSelected" disabled="{{selectedIds.length === 0}}">
+      删除{{selectedIds.length > 0 ? '(' + selectedIds.length + ')' : ''}}
+    </button>
+  </view>
+</view>

@@ -1,0 +1,58 @@
+<view class="page">
+  <view class="image-section" bindtap="chooseImage">
+    <block wx:if="{{!selectedImages.length}}">
+      <view class="image-placeholder">
+        <view class="placeholder-icon">+</view>
+        <view class="placeholder-text">点击选择图片</view>
+        <view class="placeholder-hint">相册 / 拍照，最多9张</view>
+      </view>
+    </block>
+    <block wx:else>
+      <scroll-view wx:if="{{isBatch}}" scroll-y class="image-scroll">
+        <view class="image-grid grid-multi">
+          <view class="image-item" wx:for="{{selectedImages}}" wx:key="*this" wx:for-index="idx">
+            <image src="{{item}}" mode="aspectFill" class="selected-img"></image>
+            <view class="image-remove" catchtap="removeImage" data-idx="{{idx}}">×</view>
+            <view class="image-batch-badge">{{idx + 1}}</view>
+          </view>
+          <view class="image-add" wx:if="{{selectedImages.length < 9}}" catchtap="chooseImage">
+            <text>+</text>
+          </view>
+        </view>
+      </scroll-view>
+      <image wx:else src="{{selectedImages[0]}}" mode="aspectFit" class="single-img"></image>
+    </block>
+  </view>
+
+  <view class="bottom-panel">
+    <view class="batch-toggle" bindtap="toggleBatch" wx:if="{{selectedImages.length > 0}}">
+      <text class="batch-text">{{isBatch ? '批量模式（' + selectedImages.length + '/9）' : '切换到批量修图'}}</text>
+      <view class="batch-badge" wx:if="{{!isBatch}}">批量</view>
+    </view>
+
+    <view class="template-row">
+      <scroll-view scroll-x class="template-scroll" enhanced show-scrollbar="{{false}}">
+        <view class="template-item {{selectedTemplate === item.id ? 'active' : ''}}"
+              wx:for="{{templates}}" wx:key="id"
+              bindtap="selectTemplate" data-id="{{item.id}}">
+          <view class="template-icon">{{item.icon}}</view>
+          <text class="template-text">{{item.name}}</text>
+          <view class="template-check" wx:if="{{selectedTemplate === item.id}}">✓</view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="prompt-row">
+      <textarea class="prompt-input" placeholder="自定义提示词（可选）：增强光影、去除噪点、自然美颜..."
+                value="{{customPrompt}}" bindinput="onPromptInput"
+                maxlength="200" auto-height></textarea>
+      <view class="prompt-count">{{customPrompt.length}}/200</view>
+    </view>
+
+    <view class="btn-row">
+      <button class="btn-submit" bindtap="startRetouch" disabled="{{!selectedImages.length || submitting}}">
+        {{submitting ? '提交中...' : (isBatch ? '批量精修（' + selectedImages.length + '张）' : '开始精修')}}
+      </button>
+    </view>
+  </view>
+</view>

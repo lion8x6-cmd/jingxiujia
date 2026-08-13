@@ -1,0 +1,51 @@
+<view class="page">
+  <!-- 顶部统计 + 管理 -->
+  <view class="header" wx:if="{{album.length > 0}}">
+    <view class="header-info">
+      <text class="header-count">{{album.length}}张图片</text>
+      <text class="header-hint">永久保存 · 不占手机空间</text>
+    </view>
+    <view class="header-actions">
+      <text class="manage-btn" bindtap="toggleSelect">{{selectMode ? '取消' : '管理'}}</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{album.length === 0}}">
+    <view class="empty-icon">☁️</view>
+    <text class="empty-text">云相册空空如也</text>
+    <text class="empty-desc">精修后的图片转存到这里，永久保存</text>
+    <button class="empty-btn" bindtap="goHome">去精修图片</button>
+  </view>
+
+  <!-- 图片网格 -->
+  <view class="album-grid" wx:else>
+    <view class="grid-item {{selectMode && selectedMap[item.id] ? 'selected' : ''}}"
+          wx:for="{{album}}" wx:key="id"
+          bindtap="onTapItem" data-id="{{item.id}}" data-src="{{item.src}}">
+      <image src="{{item.src}}" mode="aspectFill" lazy-load></image>
+      <view class="item-check" wx:if="{{selectMode}}">
+        <view class="check-circle {{selectedMap[item.id] ? 'checked' : ''}}">
+          <text wx:if="{{selectedMap[item.id]}}">✓</text>
+        </view>
+      </view>
+      <view class="item-type" wx:if="{{item.typeName}}">{{item.typeName}}</view>
+    </view>
+  </view>
+
+  <!-- 底部管理操作栏 -->
+  <view class="bottom-bar" wx:if="{{selectMode}}">
+    <view class="bar-left" bindtap="selectAll">
+      <view class="check-circle {{allSelected ? 'checked' : ''}}">
+        <text wx:if="{{allSelected}}">✓</text>
+      </view>
+      <text class="bar-text">全选</text>
+    </view>
+    <view class="bar-right">
+      <button class="bar-btn btn-save" bindtap="saveSelectedToPhone"
+              disabled="{{selectedCount === 0}}">保存到手机</button>
+      <button class="bar-btn btn-delete" bindtap="deleteSelected"
+              disabled="{{selectedCount === 0}}">删除({{selectedCount}})</button>
+    </view>
+  </view>
+</view>
