@@ -331,6 +331,8 @@ function arkRequestOnce(body, signal) {
       url: ARK_CONFIG.baseUrl + '/images/generations',
       method: 'POST',
       timeout: ARK_CONFIG.requestTimeout,
+      responseType: 'text',
+      dataType: 'json',
       header: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + ARK_CONFIG.apiKey
@@ -343,7 +345,14 @@ function arkRequestOnce(body, signal) {
           if (item.url) {
             resolve({ url: item.url, raw: res.data });
           } else if (item.b64_json) {
-            resolve({ url: 'data:image/png;base64,' + item.b64_json, raw: res.data });
+            // 将 base64 写入本地临时文件，返回本地路径（避免 downloadFile 域名白名单问题）
+            writeBase64ToFile(item.b64_json).then(localPath => {
+              resolve({ url: localPath, raw: res.data });
+            }).catch(err => {
+              // 写入失败则降级为 data URI
+              console.warn('[ark] writeBase64ToFile failed, using data URI:', err);
+              resolve({ url: 'data:image/png;base64,' + item.b64_json, raw: res.data });
+            });
           } else {
             reject(new Error('返回结果中没有图片地址'));
           }
@@ -378,6 +387,25 @@ function arkRequestOnce(body, signal) {
       signal._onCancel(() => {
         try { task.abort(); } catch (e) {}
       });
+    }
+  });
+}
+
+// 将 base64 图片数据写入本地文件，返回本地路径
+function writeBase64ToFile(b64Data) {
+  return new Promise((resolve, reject) => {
+    try {
+      const fs = wx.getFileSystemManager();
+      const filePath = wx.env.USER_DATA_PATH + '/result_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
+      fs.writeFile({
+        filePath,
+        data: b64Data,
+        encoding: 'base64',
+        success: () => resolve(filePath),
+        fail: (e) => reject(e)
+      });
+    } catch (e) {
+      reject(e);
     }
   });
 }
@@ -485,7 +513,7 @@ async function generateEdit(options) {
   const body = {
     model: ARK_CONFIG.model,
     prompt,
-    response_format: 'url',
+    response_format: 'b64_json',
     size: ARK_CONFIG.size,
     stream: false,
     watermark: ARK_CONFIG.watermark

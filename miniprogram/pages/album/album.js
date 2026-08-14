@@ -1,5 +1,6 @@
 // 云相册页 - 永久保存、预览、批量管理、保存到手机
 const storage = require('../../utils/storage.js');
+const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image.js');
 
 const TYPE_NAME_MAP = {
   retouch: 'AI精修',
@@ -96,48 +97,57 @@ Page({
     return this.data.album.filter(a => this.data.selectedMap[a.id]);
   },
 
-  // 保存选中的图片到手机相册（网络图先下载）
-  saveSelectedToPhone() {
+  // 保存选中的图片到手机相册（网络图先下载，base64先写临时文件）
+  async saveSelectedToPhone() {
     const items = this.getSelectedItems();
     if (!items.length) return;
+
+    // 先检查相册权限
+    try {
+      const setting = await new Promise((resolve) => {
+        wx.getSetting({
+          success: (res) => resolve(res.authSetting['scope.writePhotosAlbum']),
+          fail: () => resolve(undefined)
+        });
+      });
+      if (setting === false) {
+        // 用户之前拒绝过，引导去设置
+        const granted = await showAuthGuide();
+        if (!granted) return;
+      }
+    } catch (e) {}
 
     wx.showLoading({ title: '保存中...', mask: true });
     let done = 0;
     let fail = 0;
+    let authFailed = false;
 
-    const saveOne = (src) => {
-      return new Promise((resolve) => {
-        const doSave = (localPath) => {
-          wx.saveImageToPhotosAlbum({
-            filePath: localPath,
-            success: () => { done++; resolve(); },
-            fail: () => { fail++; resolve(); }
-          });
-        };
+    // 串行保存，避免并发下载压力
+    for (let i = 0; i < items.length; i++) {
+      wx.showLoading({ title: `保存中 ${i + 1}/${items.length}`, mask: true });
+      try {
+        await saveImageToAlbum(items[i].src);
+        done++;
+      } catch (err) {
+        console.error('[album] save item', i, 'failed:', err);
+        if (isAuthDenied(err)) authFailed = true;
+        fail++;
+      }
+    }
 
-        if (src.startsWith('http://') || src.startsWith('https://')) {
-          wx.downloadFile({
-            url: src,
-            success: (res) => {
-              if (res.statusCode === 200) doSave(res.tempFilePath);
-              else { fail++; resolve(); }
-            },
-            fail: () => { fail++; resolve(); }
-          });
-        } else {
-          doSave(src);
-        }
-      });
-    };
-
-    Promise.all(items.map(i => saveOne(i.src))).then(() => {
-      wx.hideLoading();
-      wx.showToast({
-        title: fail === 0 ? `已保存${done}张` : `成功${done}张,失败${fail}张`,
-        icon: 'none'
-      });
-      this.toggleSelect();
+    wx.hideLoading();
+    if (authFailed && fail > 0) {
+      const granted = await showAuthGuide();
+      if (granted) {
+        this.saveSelectedToPhone();
+        return;
+      }
+    }
+    wx.showToast({
+      title: fail === 0 ? `已保存${done}张` : `成功${done}张,失败${fail}张`,
+      icon: 'none'
     });
+    this.toggleSelect();
   },
 
   deleteSelected() {

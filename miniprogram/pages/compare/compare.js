@@ -1,6 +1,7 @@
 const storage = require('../../utils/storage');
 const aiService = require('../../utils/ai-service');
 const { TaskStatus } = require('../../utils/task-status');
+const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image');
 
 Page({
   data: {
@@ -774,7 +775,28 @@ Page({
 
   saveToLocal() {
     this.closeSaveSheet();
-    this.saveOneImage(this.data.displayUrl);
+    var url = this.data.displayUrl;
+    if (!url) {
+      wx.showToast({ title: '图片尚未就绪', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: '保存中...', mask: true });
+    saveImageToAlbum(url)
+      .then(() => {
+        wx.hideLoading();
+        wx.showToast({ title: '已保存到相册', icon: 'success' });
+      })
+      .catch(async (err) => {
+        wx.hideLoading();
+        console.error('[compare] saveToLocal failed:', err);
+        if (isAuthDenied(err)) {
+          var granted = await showAuthGuide();
+          if (granted) this.saveToLocal();
+        } else {
+          var msg = (err && err.message) || '保存失败';
+          wx.showToast({ title: msg, icon: 'none', duration: 2500 });
+        }
+      });
   },
 
   batchSaveToLocal() {
@@ -791,9 +813,13 @@ Page({
         return;
       }
       wx.showLoading({ title: `${idx + 1}/${items.length}`, mask: true });
-      this.saveOneImage(items[idx].resultUrl, true)
+      saveImageToAlbum(items[idx].resultUrl)
         .then(() => { ok++; runNext(idx + 1); })
-        .catch(() => { fail++; runNext(idx + 1); });
+        .catch((err) => {
+          console.error('[compare] batchSave item', idx, 'failed:', err);
+          fail++;
+          runNext(idx + 1);
+        });
     };
     runNext(0);
   },
@@ -822,43 +848,6 @@ Page({
     });
     storage.updateRecord(item.id, { savedToAlbum: true });
     wx.showToast({ title: '已保存到云相册', icon: 'success' });
-  },
-
-  saveOneImage(url, silent) {
-    return new Promise((resolve, reject) => {
-      if (!url) { reject(new Error('empty url')); return; }
-      const doSave = (filePath) => {
-        wx.saveImageToPhotosAlbum({
-          filePath,
-          success: () => { if (!silent) wx.showToast({ title: '已保存到相册', icon: 'success' }); resolve(); },
-          fail: (err) => {
-            if (err.errMsg && err.errMsg.indexOf('auth deny') > -1) {
-              wx.showModal({
-                title: '需要相册权限',
-                content: '请在设置中开启保存到相册权限',
-                confirmText: '去设置', confirmColor: '#07C160',
-                success: (r) => { if (r.confirm) wx.openSetting(); }
-              });
-            } else if (!silent) {
-              wx.showToast({ title: '保存失败', icon: 'none' });
-            }
-            reject(err);
-          }
-        });
-      };
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        wx.downloadFile({
-          url,
-          success: (res) => {
-            if (res.statusCode === 200) doSave(res.tempFilePath);
-            else { if (!silent) wx.showToast({ title: '下载失败', icon: 'none' }); reject(new Error('download fail')); }
-          },
-          fail: () => { if (!silent) wx.showToast({ title: '下载失败', icon: 'none' }); reject(new Error('download fail')); }
-        });
-      } else {
-        doSave(url);
-      }
-    });
   },
 
   onShareAppMessage() {
