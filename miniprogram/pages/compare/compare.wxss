@@ -16,6 +16,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: flex 0.3s ease;
+}
+.stage.stage-collapsed {
+  flex: 1 1 0;
+  min-height: 300rpx;
 }
 .stage-img {
   width: 100%;
@@ -323,43 +328,127 @@
   border-color: #07C160;
 }
 
+/* 底部行内保存按钮（收起态和展开态共用） */
+.btn-save-inline {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120rpx;
+  height: 96rpx;
+  border-radius: 48rpx;
+  border: 2rpx solid #07C160;
+  background: #fff;
+  gap: 2rpx;
+  margin-left: 16rpx;
+  box-sizing: border-box;
+}
+.btn-save-inline-hover { background: #E1F5EE; }
+.save-inline-ico {
+  font-size: 30rpx;
+  color: #07C160;
+  line-height: 1;
+  font-weight: 300;
+}
+.save-inline-txt {
+  font-size: 22rpx;
+  color: #07C160;
+  line-height: 1;
+}
+
+/* 展开态里保存按钮高度与提交按钮对齐 */
+.edit-btn-row .btn-save-inline {
+  height: 88rpx;
+  border-radius: 44rpx;
+  margin-left: 0;
+}
+
+/* 收起态编辑按钮栏 */
+.collapsed-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: #fff;
+}
+.btn-edit-expand {
+  flex: 1;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: #07C160;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 500;
+  border-radius: 48rpx;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin: 0;
+  padding: 0;
+}
+.btn-edit-expand::after { border: none; }
+.edit-ico { font-size: 32rpx; color: #fff; }
+
+/* 展开态编辑面板 */
+.edit-panel {
+  flex-shrink: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: slideUp 0.28s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* 模式切换 */
 .mode-tabs {
   display: flex;
   background: #fff;
-  padding: 16rpx 24rpx 0;
-  gap: 16rpx;
+  padding: 0 24rpx;
   flex-shrink: 0;
+  border-bottom: 0.5px solid #f0f0f0;
 }
 .mode-tab {
   flex: 1;
   text-align: center;
   font-size: 26rpx;
-  padding: 16rpx 0;
-  color: #666;
-  border-bottom: 4rpx solid transparent;
+  padding: 20rpx 0;
+  color: #999;
+  position: relative;
   transition: all 0.15s;
 }
 .mode-tab.on {
   color: #07C160;
-  font-weight: 600;
-  border-bottom-color: #07C160;
+  font-weight: 500;
+}
+.mode-tab.on::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 4rpx;
+  background: #07C160;
+  border-radius: 2rpx;
 }
 
-/* 调节面板容器：固定高度 + 绝对定位子面板，切换时舞台高度完全不变，彻底杜绝闪烁 */
+/* 调节面板容器 */
 .adjust-wrap {
   position: relative;
   flex-shrink: 0;
-  height: 360rpx;
-  background: #fff;
-  border-bottom: 2rpx solid #f0f0f0;
-  overflow: hidden;
 }
 
 /* 快捷调节面板 */
 .adjust-panel {
-  position: absolute;
-  left: 0; right: 0; top: 0;
   background: #fff;
   padding: 20rpx 24rpx 16rpx;
   box-sizing: border-box;
@@ -400,10 +489,8 @@
 .slider-val.pos { color: #07C160; }
 .slider-val.neg { color: #E24B4A; }
 
-/* AI 调节面板 */
+/* 一句话改图面板 */
 .ai-panel {
-  position: absolute;
-  left: 0; right: 0; top: 0;
   background: #fff;
   padding: 20rpx 24rpx 16rpx;
   box-sizing: border-box;
@@ -440,61 +527,45 @@
   border-radius: 24rpx;
 }
 
-/* 按钮行 */
-.btn-row {
+/* 展开态底部按钮行 */
+.edit-btn-row {
   display: flex;
   gap: 16rpx;
   align-items: center;
   padding: 16rpx 24rpx;
-  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   background: #fff;
-  margin-top: auto;
   flex-shrink: 0;
   box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.04);
 }
+.btn-collapse {
+  flex-shrink: 0;
+  width: 160rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border-radius: 44rpx;
+  background: #f2f2f2;
+  color: #666;
+  font-size: 28rpx;
+}
+.btn-collapse:active { background: #e8e8e8; }
 .btn-submit {
   flex: 1;
   background: #07C160;
   color: #fff;
   font-size: 28rpx;
   font-weight: 500;
-  padding: 22rpx 0;
-  border-radius: 48rpx;
+  padding: 0;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 44rpx;
   border: none;
-  line-height: 1.4;
   margin: 0;
 }
 .btn-submit::after { border: none; }
-.btn-submit[disabled] { background: #ccc; color: #fff; }
-
-/* 保存按钮：紧凑胶囊图标+文字 */
-.btn-save {
-  flex-shrink: 0;
-  padding: 0 28rpx;
-  height: 88rpx;
-  border-radius: 44rpx;
-  background: #fff;
-  border: 3rpx solid #07C160;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  transition: background 0.15s;
-}
-.btn-save-hover {
-  background: #E1F5EE;
-}
-.save-ico {
-  font-size: 32rpx;
-  color: #07C160;
-  line-height: 1;
-  font-weight: 300;
-}
-.save-txt {
-  font-size: 26rpx;
-  color: #07C160;
-  line-height: 1;
+.btn-submit.disabled, .btn-submit[disabled] {
+  background: #ccc;
+  color: #fff;
 }
 
 /* ActionSheet */
@@ -516,11 +587,44 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 32rpx 16rpx;
+  padding: 8rpx 32rpx 16rpx;
   color: #fff;
 }
 .sheet-pick-title { font-size: 26rpx; opacity: 0.9; }
 .sheet-pick-all { font-size: 26rpx; color: #07C160; padding: 4rpx 8rpx; }
+
+/* 弹窗内缩略图选择条 */
+.sheet-thumbs {
+  white-space: nowrap;
+  padding: 0 24rpx 8rpx;
+}
+.sheet-thumb {
+  display: inline-block;
+  position: relative;
+  width: 100rpx; height: 100rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  margin-right: 16rpx;
+  background: #eee;
+  vertical-align: top;
+  opacity: 0.5;
+}
+.sheet-thumb image { width: 100%; height: 100%; }
+.sheet-thumb.checked { opacity: 1; outline: 4rpx solid #07C160; outline-offset: 2rpx; }
+.sheet-thumb.fail { opacity: 0.3; }
+.sheet-thumb-check {
+  position: absolute; top: 6rpx; right: 6rpx;
+  width: 36rpx; height: 36rpx;
+  border-radius: 50%;
+  border: 3rpx solid #fff;
+  background: rgba(0,0,0,0.3);
+  color: #fff; font-size: 22rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet-thumb.checked .sheet-thumb-check {
+  background: #07C160;
+  border-color: #07C160;
+}
 .sheet-group {
   background: #fff;
   border-radius: 24rpx;
@@ -562,4 +666,219 @@
   font-size: 32rpx;
   color: #1a1a1a;
   font-weight: 500;
+}
+
+/* ========== 局部编辑：选区层 ========== */
+.region-layer {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 8;
+}
+
+/* 空状态指引 */
+.local-guide {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -55%);
+  width: 220rpx;
+  height: 280rpx;
+  pointer-events: none;
+}
+.guide-box {
+  position: absolute;
+  inset: 0;
+  border: 4rpx dashed #07C160;
+  border-radius: 12rpx;
+  animation: guideBreath 2.2s ease-in-out infinite;
+}
+@keyframes guideBreath {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.guide-corner {
+  position: absolute;
+  width: 24rpx;
+  height: 24rpx;
+  border: 4rpx solid #07C160;
+}
+.guide-corner.tl { top: -4rpx; left: -4rpx; border-right: 0; border-bottom: 0; }
+.guide-corner.tr { top: -4rpx; right: -4rpx; border-left: 0; border-bottom: 0; }
+.guide-corner.bl { bottom: -4rpx; left: -4rpx; border-right: 0; border-top: 0; }
+.guide-corner.br { bottom: -4rpx; right: -4rpx; border-left: 0; border-top: 0; }
+.guide-finger {
+  position: absolute;
+  left: 50%; top: 55%;
+  transform: translate(-50%, -50%);
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+}
+.guide-finger::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 45%;
+  transform: translate(-50%, -50%) rotate(-20deg);
+  width: 12rpx;
+  height: 32rpx;
+  background: #07C160;
+  border-radius: 6rpx;
+}
+.local-guide-tip {
+  position: absolute;
+  left: 50%; bottom: 24rpx;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 10rpx 28rpx;
+  border-radius: 28rpx;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 正在绘制的临时选区 */
+.region-drawing {
+  position: absolute;
+  border: 3rpx solid #07C160;
+  background: rgba(7, 193, 96, 0.1);
+  z-index: 9;
+}
+
+/* 已有选区 */
+.region-item {
+  position: absolute;
+  border: 3rpx solid rgba(7, 193, 96, 0.45);
+  background: rgba(7, 193, 96, 0.06);
+  box-sizing: border-box;
+  z-index: 7;
+}
+.region-item.active {
+  border-color: #07C160;
+  background: rgba(7, 193, 96, 0.12);
+  z-index: 10;
+}
+.region-index {
+  position: absolute;
+  top: -2rpx; left: -2rpx;
+  min-width: 32rpx; height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
+  background: #07C160;
+  color: #fff;
+  font-size: 20rpx;
+  border-radius: 6rpx 0 8rpx 0;
+  padding: 0 6rpx;
+}
+.region-delete {
+  position: absolute;
+  top: -16rpx; right: -16rpx;
+  width: 36rpx; height: 36rpx;
+  line-height: 32rpx;
+  text-align: center;
+  background: #E24B4A;
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+/* 8 个手柄 */
+.handle {
+  position: absolute;
+  width: 20rpx; height: 20rpx;
+  background: #fff;
+  border: 3rpx solid #07C160;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.region-item:not(.active) .handle { display: none; }
+.h-tl { top: -12rpx; left: -12rpx; }
+.h-tc { top: -12rpx; left: 50%; margin-left: -10rpx; }
+.h-tr { top: -12rpx; right: -12rpx; }
+.h-ml { top: 50%; left: -12rpx; margin-top: -10rpx; }
+.h-mr { top: 50%; right: -12rpx; margin-top: -10rpx; }
+.h-bl { bottom: -12rpx; left: -12rpx; }
+.h-bc { bottom: -12rpx; left: 50%; margin-left: -10rpx; }
+.h-br { bottom: -12rpx; right: -12rpx; }
+
+/* ========== 局部编辑：面板内容 ========== */
+.local-panel {
+  padding: 20rpx 24rpx;
+}
+.local-guide-card {
+  background: #F7F8FA;
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+.guide-step:last-child { margin-bottom: 0; }
+.step-num {
+  flex-shrink: 0;
+  width: 36rpx; height: 36rpx;
+  line-height: 36rpx;
+  text-align: center;
+  background: #07C160;
+  color: #fff;
+  font-size: 22rpx;
+  border-radius: 50%;
+}
+.step-text {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 36rpx;
+}
+.region-list {
+  max-height: 320rpx;
+}
+.region-card {
+  background: #F7F8FA;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 12rpx;
+  border: 2rpx solid transparent;
+}
+.region-card.active {
+  border-color: #07C160;
+  background: #E1F5EE;
+}
+.region-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+.region-card-index {
+  font-size: 24rpx;
+  color: #0F6E56;
+  font-weight: 500;
+}
+.region-card-del {
+  font-size: 24rpx;
+  color: #E24B4A;
+  padding: 4rpx 12rpx;
+}
+.region-card-input {
+  width: 100%;
+  height: 64rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  font-size: 26rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+.local-add-hint {
+  text-align: center;
+  font-size: 26rpx;
+  color: #07C160;
+  padding: 16rpx 0;
+  border: 2rpx dashed #07C160;
+  border-radius: 12rpx;
+  margin-top: 8rpx;
 }

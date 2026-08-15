@@ -1,12 +1,40 @@
 <view class="page">
   <!-- 图片预览区：catchtouchmove 阻止放大拖动时页面滚动穿透 -->
-  <view class="stage"
+  <view class="stage {{editExpanded ? 'stage-collapsed' : ''}}"
         bindtouchstart="onStageTouchStart"
         bindtouchend="onStageTouchEnd"
         catchtouchmove="onStageTouchMove"
         bindtouchcancel="onStageTouchCancel"
         bindlongpress="onStageLongPress">
     <image class="stage-img {{imgAnim ? 'anim' : ''}}" style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});" src="{{showOriginal ? currentItem.originalUrl : displayUrl}}" mode="aspectFit" bindload="onImgLoad"></image>
+
+    <!-- 局部编辑选区层 -->
+    <view class="region-layer" wx:if="{{editExpanded && adjustMode === 'local' && !showOriginal && !generating}}">
+      <!-- 空状态指引 -->
+      <block wx:if="{{localRegions.length === 0 && !isDrawing}}">
+        <view class="local-guide">
+          <view class="guide-box"><view class="guide-corner tl"></view><view class="guide-corner tr"></view><view class="guide-corner bl"></view><view class="guide-corner br"></view></view>
+          <view class="guide-finger"></view>
+        </view>
+        <view class="local-guide-tip">在图片上拖动手指，框选要修改的区域</view>
+      </block>
+
+      <!-- 正在绘制的临时选区 -->
+      <view class="region-drawing" wx:if="{{isDrawing && drawRect}}"
+            style="left:{{drawRect.x1}}px;top:{{drawRect.y1}}px;width:{{drawRect.x2 - drawRect.x1}}px;height:{{drawRect.y2 - drawRect.y1}}px"></view>
+
+      <!-- 已有选区 -->
+      <view class="region-item {{item.id === activeRegionId ? 'active' : ''}}"
+            wx:for="{{localRegions}}" wx:key="id"
+            style="left:{{item.sx1}}px;top:{{item.sy1}}px;width:{{item.sx2 - item.sx1}}px;height:{{item.sy2 - item.sy1}}px"
+            catchtap="selectRegion" data-id="{{item.id}}">
+        <text class="region-index">{{index + 1}}</text>
+        <view class="region-delete" catchtap="deleteRegion" data-id="{{item.id}}">×</view>
+        <view class="handle h-tl"></view><view class="handle h-tc"></view><view class="handle h-tr"></view>
+        <view class="handle h-ml"></view><view class="handle h-mr"></view>
+        <view class="handle h-bl"></view><view class="handle h-bc"></view><view class="handle h-br"></view>
+      </view>
+    </view>
 
     <!-- 左上角：当前版本标签 -->
     <view class="version-label">{{showOriginal ? '原图（预览）' : versionLabel}}</view>
@@ -22,15 +50,15 @@
         <text>{{showOriginal ? '返回精修' : '查看原图'}}</text>
       </view>
       <view class="delete-btn" wx:if="{{canDeleteCurrent}}" catchtap="deleteCurrent">
-        <text class="delete-ico">🗑</text>
+        <text class="delete-ico">×</text>
       </view>
     </view>
 
     <!-- 左右切换批次图片箭头 -->
-    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1}}" catchtap="goPrev">
+    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && adjustMode === 'local')}}" catchtap="goPrev">
       <text>‹</text>
     </view>
-    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1}}" catchtap="goNext">
+    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && adjustMode === 'local')}}" catchtap="goNext">
       <text>›</text>
     </view>
 
@@ -57,30 +85,66 @@
     </view>
   </view>
 
-  <!-- 批量缩略图导航：保存弹窗打开时提到遮罩之上，确保可点击勾选 -->
-  <scroll-view scroll-x class="batch-nav {{showSaveSheet ? 'above-mask' : ''}}" wx:if="{{isBatch && batchItems.length > 1}}" enhanced show-scrollbar="{{false}}">
+  <!-- 批量缩略图导航（保存弹窗关闭时显示在页面上） -->
+  <scroll-view scroll-x class="batch-nav" wx:if="{{isBatch && batchItems.length > 1 && !showSaveSheet}}" enhanced show-scrollbar="{{false}}">
     <view class="batch-thumb {{idx === currentIndex ? 'active' : ''}} {{item.status === 'failed' ? 'fail' : ''}}"
           wx:for="{{batchItems}}" wx:key="id" wx:for-index="idx"
           bindtap="onThumbTap" data-idx="{{idx}}">
       <image src="{{item.resultUrl || item.originalUrl}}" mode="aspectFill"></image>
-      <!-- 非保存面板：当前选中指示 -->
-      <text class="batch-check" wx:if="{{!showSaveSheet && idx === currentIndex}}">✓</text>
-      <!-- 保存面板打开时：勾选圈 -->
-      <view class="batch-save-check {{selectedSaveMap[item.id] ? 'checked' : ''}}" wx:if="{{showSaveSheet}}">
-        <text wx:if="{{selectedSaveMap[item.id]}}">✓</text>
-      </view>
+      <text class="batch-check" wx:if="{{idx === currentIndex}}">✓</text>
       <text class="batch-fail-dot" wx:if="{{item.status === 'failed'}}">!</text>
     </view>
   </scroll-view>
 
-  <!-- 模式切换：快捷调节 / AI 调节 -->
-  <view class="mode-tabs">
-    <view class="mode-tab {{adjustMode === 'quick' ? 'on' : ''}}" bindtap="switchMode" data-mode="quick">快捷调节</view>
-    <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">AI 调节</view>
+  <!-- 收起态：编辑图片 + 保存 同一行 -->
+  <view class="collapsed-bar" wx:if="{{!editExpanded}}">
+    <button class="btn-edit-expand" bindtap="expandPanel">
+      <text class="edit-ico">✎</text>
+      <text>编辑图片</text>
+    </button>
+    <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
+      <text class="save-inline-ico">↓</text>
+      <text class="save-inline-txt">保存</text>
+    </view>
   </view>
 
-  <!-- 调节面板容器（固定高度，用 hidden 避免 wx:if 销毁重建 textarea 导致闪烁） -->
-  <view class="adjust-wrap">
+  <!-- 展开态：编辑面板 -->
+  <view class="edit-panel {{editExpanded ? 'show' : ''}}" wx:if="{{editExpanded}}">
+    <!-- 模式切换：局部编辑 / 快捷调节 / 一句话改图 -->
+    <view class="mode-tabs">
+      <view class="mode-tab {{adjustMode === 'local' ? 'on' : ''}}" bindtap="switchMode" data-mode="local">局部编辑</view>
+      <view class="mode-tab {{adjustMode === 'quick' ? 'on' : ''}}" bindtap="switchMode" data-mode="quick">快捷调节</view>
+      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">一句话改图</view>
+    </view>
+
+    <!-- 局部编辑面板 -->
+    <view class="local-panel" hidden="{{adjustMode !== 'local'}}">
+      <!-- 空状态指引 -->
+      <view class="local-guide-card" wx:if="{{localRegions.length === 0}}">
+        <view class="guide-step"><text class="step-num">1</text><text class="step-text">在图片上拖动手指，框选要修改的区域</text></view>
+        <view class="guide-step"><text class="step-num">2</text><text class="step-text">输入修改指令，例如：磨皮美颜、换成卷发</text></view>
+        <view class="guide-step"><text class="step-num">3</text><text class="step-text">可继续添加多个区域，或直接提交生成</text></view>
+      </view>
+
+      <!-- 已有区域列表 -->
+      <scroll-view scroll-y class="region-list" wx:if="{{localRegions.length > 0}}">
+        <view class="region-card {{item.id === activeRegionId ? 'active' : ''}}"
+              wx:for="{{localRegions}}" wx:key="id"
+              bindtap="selectRegion" data-id="{{item.id}}">
+          <view class="region-card-head">
+            <text class="region-card-index">区域 {{index + 1}}</text>
+            <text class="region-card-del" catchtap="deleteRegion" data-id="{{item.id}}">删除</text>
+          </view>
+          <input class="region-card-input" placeholder="输入修改指令，如：磨皮美颜"
+                 value="{{item.prompt}}" data-id="{{item.id}}"
+                 bindinput="onRegionPromptInput" maxlength="100"/>
+        </view>
+      </scroll-view>
+
+      <view class="local-add-hint" wx:if="{{localRegions.length > 0 && localRegions.length < 5}}"
+            bindtap="addNewRegion">+ 继续框选新区域</view>
+    </view>
+
     <!-- 快捷调节面板 -->
     <view class="adjust-panel" hidden="{{adjustMode !== 'quick'}}">
       <scroll-view scroll-x class="parts-scroll" enhanced show-scrollbar="{{false}}">
@@ -105,11 +169,11 @@
       </view>
     </view>
 
-    <!-- AI 调节面板（对话式） -->
+    <!-- 一句话改图面板 -->
     <view class="ai-panel" hidden="{{adjustMode !== 'ai'}}">
-      <view class="ai-tip">告诉 AI 你想怎么调，例如："皮肤再白皙一点，背景虚化一些"</view>
+      <view class="ai-tip">告诉 AI 你想怎么改，例如："皮肤再白皙一点，背景虚化一些"</view>
       <textarea class="ai-input"
-                placeholder="用一句话描述你想要的调整效果..."
+                placeholder="用一句话描述你想要的效果..."
                 placeholder-class="ai-placeholder"
                 value="{{aiPrompt}}"
                 bindinput="onAiPromptInput"
@@ -124,36 +188,45 @@
         <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="牙齿更白，笑容更自然">美白牙齿</view>
       </view>
     </view>
-  </view>
 
-  <!-- 提交 + 保存 按钮行 -->
-  <view class="btn-row">
-    <button class="btn-submit" bindtap="submitAdjust" disabled="{{!canSubmit || generating}}">
-      <text wx:if="{{!generating}}">✨ 提交修改并生成图片</text>
-      <text wx:else>生成中 {{genProgressText}}%</text>
-    </button>
-    <view class="btn-save" bindtap="onSaveBtnTap" hover-class="btn-save-hover" hover-stay-time="80">
-      <text class="save-ico">↓</text>
-      <text class="save-txt">保存图片</text>
+    <!-- 底部按钮：收起 + 提交 + 保存 -->
+    <view class="edit-btn-row">
+      <view class="btn-collapse" bindtap="collapsePanel">收起</view>
+      <button class="btn-submit {{!canSubmit || generating ? 'disabled' : ''}}" bindtap="submitAdjust" disabled="{{!canSubmit || generating}}">
+        <text wx:if="{{!generating}}">提交修改并生成</text>
+        <text wx:else>生成中 {{genProgressText}}%</text>
+      </button>
+      <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
+        <text class="save-inline-ico">↓</text>
+        <text class="save-inline-txt">保存</text>
+      </view>
     </view>
   </view>
 
   <!-- 保存底部弹窗 ActionSheet -->
   <view class="sheet-mask" wx:if="{{showSaveSheet}}" bindtap="closeSaveSheet"></view>
   <view class="sheet {{showSaveSheet ? 'show' : ''}}">
-    <!-- 批量模式：先选图片 -->
     <block wx:if="{{isBatch && batchItems.length > 1}}">
       <view class="sheet-pick-head">
         <text class="sheet-pick-title">选择要保存的图片（已选 {{selectedSaveIds.length}} 张）</text>
         <view class="sheet-pick-all" bindtap="toggleSelectAllSave">{{isAllSaveSelected ? '取消全选' : '全选'}}</view>
       </view>
+      <scroll-view scroll-x class="sheet-thumbs" enhanced show-scrollbar="{{false}}">
+        <view class="sheet-thumb {{selectedSaveMap[item.id] ? 'checked' : ''}} {{item.status === 'failed' ? 'fail' : ''}}"
+              wx:for="{{batchItems}}" wx:key="id" wx:for-index="idx"
+              bindtap="onThumbTap" data-idx="{{idx}}">
+          <image src="{{item.resultUrl || item.originalUrl}}" mode="aspectFill"></image>
+          <view class="sheet-thumb-check">
+            <text wx:if="{{selectedSaveMap[item.id]}}">✓</text>
+          </view>
+        </view>
+      </scroll-view>
       <view class="sheet-group">
         <view class="sheet-item" bindtap="batchSaveToLocal" hover-class="sheet-item-hover" hover-stay-time="80">保存至本地相册</view>
         <view class="sheet-item" bindtap="batchSaveToCloud" hover-class="sheet-item-hover" hover-stay-time="80">保存到云相册</view>
         <button class="sheet-item sheet-item-btn sheet-item-last" open-type="share" bindtap="closeSaveSheet" hover-class="sheet-item-hover">分享给好友</button>
       </view>
     </block>
-    <!-- 单张模式 -->
     <block wx:else>
       <view class="sheet-group">
         <view class="sheet-item" bindtap="saveToLocal" hover-class="sheet-item-hover" hover-stay-time="80">保存图片至本地</view>
