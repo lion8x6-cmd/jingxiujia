@@ -237,16 +237,19 @@
 
 /* Template Grid */
 .template-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 16rpx;
 }
 .template-card {
+  width: calc(50% - 8rpx);
   background: #fff;
   border-radius: 16rpx;
-  padding: 24rpx 16rpx;
+  padding: 24rpx 12rpx;
   text-align: center;
   border: 2rpx solid #eee;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .template-card.active {
   border-color: #07C160;
@@ -262,6 +265,9 @@
   font-size: 26rpx;
   font-weight: 500;
   color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .template-card.active .template-name { color: #07C160; }
 .template-desc {
