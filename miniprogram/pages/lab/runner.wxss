@@ -2,6 +2,7 @@
   min-height: 100vh;
   background: #f5f5f5;
   padding-bottom: 140rpx;
+  overflow-x: hidden;
 }
 
 /* 上传区 */
@@ -55,6 +56,7 @@
 /* 控制区 */
 .controls-scroll {
   margin: 0 32rpx;
+  overflow-x: hidden;
 }
 .controls-area {
   padding: 0;
@@ -194,8 +196,7 @@
 
 /* Style Grid */
 .style-grid-scroll {
-  margin: 0 -32rpx;
-  padding: 0 32rpx;
+  width: 100%;
 }
 .style-grid {
   display: flex;
@@ -294,6 +295,7 @@
   border: 1rpx solid #f0e6c8;
   border-radius: 16rpx;
   overflow: hidden;
+  box-sizing: border-box;
 }
 .prompt-header {
   display: flex;
