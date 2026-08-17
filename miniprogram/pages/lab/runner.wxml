@@ -14,6 +14,7 @@
 
   <!-- 参数区 -->
   <scroll-view scroll-y class="controls-scroll" style="height: calc(100vh - 580rpx);">
+    <view class="controls-inner">
     <view class="controls-area">
       <block wx:for="{{visibleControls}}" wx:key="key">
         <!-- 卡片选择 -->
@@ -128,6 +129,7 @@
       <view class="prompt-body prompt-preview" wx:else>
         <text class="prompt-preview-text">{{finalPrompt || '选择参数后自动生成提示词'}}</text>
       </view>
+    </view>
     </view>
   </scroll-view>
 

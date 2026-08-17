@@ -55,12 +55,14 @@
 
 /* 控制区 */
 .controls-scroll {
-  margin: 0 32rpx;
   overflow-x: hidden;
   box-sizing: border-box;
 }
+.controls-inner {
+  padding: 0 32rpx;
+}
 .controls-area {
-  padding: 0 4rpx;
+  padding: 0;
 }
 
 .ctrl-group {
@@ -296,7 +298,7 @@
 
 /* 提示词预览 */
 .prompt-section {
-  margin: 24rpx 0 24rpx 0;
+  margin: 24rpx 0;
   background: #fffdf5;
   border: 1rpx solid #f0e6c8;
   border-radius: 16rpx;
