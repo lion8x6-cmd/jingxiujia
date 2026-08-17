@@ -99,15 +99,17 @@
 /* Card Select */
 .card-select-row {
   display: flex;
-  gap: 16rpx;
+  flex-wrap: wrap;
 }
 .card-opt {
   flex: 1;
+  min-width: 0;
   background: #fff;
   border-radius: 16rpx;
   padding: 20rpx 16rpx;
   text-align: center;
   border: 2rpx solid #eee;
+  box-sizing: border-box;
 }
 .card-opt.active {
   border-color: #07C160;
@@ -135,7 +137,6 @@
   background: #fff;
   border-radius: 16rpx;
   padding: 6rpx;
-  gap: 4rpx;
 }
 .tab-item {
   flex: 1;
@@ -144,6 +145,7 @@
   border-radius: 12rpx;
   font-size: 26rpx;
   color: #666;
+  box-sizing: border-box;
 }
 .tab-item.active {
   background: #07C160;
@@ -155,12 +157,13 @@
 .chips-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
 }
 .chip {
   background: #fff;
   border-radius: 32rpx;
   padding: 12rpx 24rpx;
+  margin-right: 12rpx;
+  margin-bottom: 12rpx;
   font-size: 24rpx;
   color: #666;
   border: 2rpx solid #eee;
@@ -242,10 +245,11 @@
 .template-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
 }
 .template-card {
-  width: calc(50% - 8rpx);
+  width: 330rpx;
+  margin-right: 16rpx;
+  margin-bottom: 16rpx;
   background: #fff;
   border-radius: 16rpx;
   padding: 24rpx 12rpx;
@@ -253,6 +257,9 @@
   border: 2rpx solid #eee;
   box-sizing: border-box;
   overflow: hidden;
+}
+.template-card:nth-child(2n) {
+  margin-right: 0;
 }
 .template-card.active {
   border-color: #07C160;
@@ -298,7 +305,8 @@
 
 /* 提示词预览 */
 .prompt-section {
-  margin: 24rpx 0;
+  margin-top: 24rpx;
+  margin-bottom: 24rpx;
   background: #fffdf5;
   border: 1rpx solid #f0e6c8;
   border-radius: 16rpx;
@@ -353,9 +361,12 @@
   padding: 16rpx 32rpx;
   padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   display: flex;
-  gap: 16rpx;
   border-top: 1rpx solid #eee;
   z-index: 10;
+  box-sizing: border-box;
+}
+.bottom-bar .btn-copy {
+  margin-right: 16rpx;
 }
 .btn-copy {
   padding: 0 28rpx;
@@ -458,7 +469,6 @@
 }
 .result-actions {
   display: flex;
-  gap: 16rpx;
   margin-top: 24rpx;
 }
 .result-btn {
@@ -470,6 +480,11 @@
   border: 2rpx solid #ddd;
   font-size: 26rpx;
   color: #666;
+  margin-right: 16rpx;
+  box-sizing: border-box;
+}
+.result-btn:last-child {
+  margin-right: 0;
 }
 .result-btn.primary {
   background: #07C160;
