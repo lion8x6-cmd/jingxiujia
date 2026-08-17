@@ -57,9 +57,10 @@
 .controls-scroll {
   margin: 0 32rpx;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 .controls-area {
-  padding: 0;
+  padding: 0 4rpx;
 }
 
 .ctrl-group {
@@ -295,8 +296,7 @@
 
 /* 提示词预览 */
 .prompt-section {
-  margin: 0 32rpx;
-  margin-bottom: 24rpx;
+  margin: 24rpx 0 24rpx 0;
   background: #fffdf5;
   border: 1rpx solid #f0e6c8;
   border-radius: 16rpx;
@@ -353,6 +353,7 @@
   display: flex;
   gap: 16rpx;
   border-top: 1rpx solid #eee;
+  z-index: 10;
 }
 .btn-copy {
   padding: 0 28rpx;

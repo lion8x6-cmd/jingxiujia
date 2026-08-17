@@ -13,7 +13,7 @@
   </view>
 
   <!-- 参数区 -->
-  <scroll-view scroll-y class="controls-scroll" style="max-height: calc(100vh - 720rpx);">
+  <scroll-view scroll-y class="controls-scroll" style="height: calc(100vh - 580rpx);">
     <view class="controls-area">
       <block wx:for="{{visibleControls}}" wx:key="key">
         <!-- 卡片选择 -->
