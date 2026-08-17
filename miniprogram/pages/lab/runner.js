@@ -1,5 +1,7 @@
 const { getSkill } = require('../../utils/lab-skills');
 const aiService = require('../../utils/ai-service');
+const storage = require('../../utils/storage');
+const { TaskStatus } = require('../../utils/task-status');
 const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image');
 
 Page({
@@ -201,10 +203,25 @@ Page({
         templateId: ''
       });
 
+      // 保存记录到 storage
+      const skillName = this.data.skill ? this.data.skill.name : '调试';
+      const record = storage.addRecord({
+        type: 'lab',
+        labType: this.data.skillId,
+        labName: skillName,
+        originalUrl: this.data.imagePath,
+        resultUrl: result.url,
+        prompt: prompt,
+        lastPrompt: prompt,
+        status: TaskStatus.COMPLETED,
+        taskId: 'lab_' + Date.now()
+      });
+
       this.setData({
         generating: false,
         progress: 100,
-        resultUrl: result.url
+        resultUrl: result.url,
+        recordId: record.id
       });
       wx.showToast({ title: '生成完成', icon: 'success' });
     } catch (err) {

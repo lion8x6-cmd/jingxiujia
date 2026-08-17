@@ -64,6 +64,9 @@
               <text class="saved-badge" wx:if="{{item.savedToAlbum}}">已转存</text>
             </text>
           </view>
+          <view class="record-prompt" wx:if="{{item.type === 'lab' && item.prompt}}">
+            <text class="record-prompt-text">{{item.prompt}}</text>
+          </view>
         </view>
         <view class="record-arrow" wx:if="{{!selectMode}}">›</view>
       </view>

@@ -9,7 +9,8 @@ const TYPE_NAME_MAP = {
   'text-edit': '无痕改字',
   cutout: '智能抠图',
   erase: '智能消除',
-  'body-adjust': '部位调节'
+  'body-adjust': '部位调节',
+  lab: 'Skill调试'
 };
 
 Page({
@@ -131,6 +132,11 @@ Page({
       } else {
         batchText = `批量 ${r.batchTotal}张`;
       }
+    }
+
+    // 调试记录显示 Skill 名称
+    if (r.type === 'lab' && r.labName) {
+      batchText = r.labName;
     }
 
     const createdAtText = this.formatTime(r.createdAt);
@@ -321,6 +327,14 @@ Page({
     const id = e.currentTarget.dataset.id;
     const record = this.data.records.find(r => r.id === id);
     if (!record) return;
+
+    // 调试实验室记录：跳转到 compare 页查看结果和提示词
+    if (record.type === 'lab') {
+      wx.navigateTo({
+        url: `/pages/compare/compare?taskId=${encodeURIComponent(record.taskId || record.id)}`
+      });
+      return;
+    }
 
     const batchParam = record.batchId ? `&batchId=${record.batchId}` : '';
 

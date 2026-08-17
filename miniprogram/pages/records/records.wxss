@@ -81,6 +81,19 @@
 .saved-badge { font-size: 18rpx; background: #E1F5EE; color: #0F6E56; padding: 2rpx 12rpx; border-radius: 12rpx; }
 .record-arrow { font-size: 40rpx; color: #ddd; flex-shrink: 0; }
 
+/* 调试记录提示词预览 */
+.record-prompt { margin-top: 8rpx; }
+.record-prompt-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
 /* 底部操作条 */
 .bottom-bar {
   position: fixed;
