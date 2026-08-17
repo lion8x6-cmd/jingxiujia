@@ -1,0 +1,90 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+.header {
+  padding: 32rpx 0 24rpx;
+}
+.header-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8rpx;
+}
+.header-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.skill-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx 28rpx;
+  gap: 24rpx;
+}
+.skill-card:active {
+  opacity: 0.7;
+}
+
+.skill-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.skill-icon-text {
+  font-size: 40rpx;
+}
+
+.skill-info {
+  flex: 1;
+  min-width: 0;
+}
+.skill-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6rpx;
+}
+.skill-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-arrow {
+  font-size: 40rpx;
+  color: #ccc;
+  flex-shrink: 0;
+}
+
+.footer {
+  margin-top: 48rpx;
+  text-align: center;
+}
+.footer-text {
+  display: block;
+  font-size: 22rpx;
+  color: #bbb;
+  line-height: 1.8;
+}

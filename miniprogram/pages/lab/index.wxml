@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="header">
+    <text class="header-title">Skill 实验室</text>
+    <text class="header-desc">测试不同的 AI 能力，调试提示词效果</text>
+  </view>
+
+  <view class="skill-list">
+    <view class="skill-card" wx:for="{{skills}}" wx:key="id"
+          bindtap="onSkillTap" data-id="{{item.id}}">
+      <view class="skill-icon" style="background: {{item.color}}20;">
+        <text class="skill-icon-text" style="color: {{item.color}};">{{item.icon}}</text>
+      </view>
+      <view class="skill-info">
+        <text class="skill-name">{{item.name}}</text>
+        <text class="skill-desc">{{item.description}}</text>
+      </view>
+      <text class="skill-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="footer-text">所有 Skill 共用豆包 Seedream 5.0 图片编辑接口</text>
+    <text class="footer-text">提示词可实时编辑调试</text>
+  </view>
+</view>

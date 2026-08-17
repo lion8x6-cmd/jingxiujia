@@ -10,6 +10,8 @@
     "pages/body-adjust/body-adjust",
     "pages/records/records",
     "pages/album/album",
+    "pages/lab/index",
+    "pages/lab/runner",
     "pages/mine/mine"
   ],
   "window": {
@@ -36,6 +38,10 @@
       {
         "pagePath": "pages/album/album",
         "text": "云相册"
+      },
+      {
+        "pagePath": "pages/lab/index",
+        "text": "调试"
       },
       {
         "pagePath": "pages/mine/mine",

@@ -1,0 +1,163 @@
+<view class="page">
+  <!-- 上传区 -->
+  <view class="upload-area {{imagePath ? 'uploaded' : ''}}" bindtap="onChooseImage">
+    <block wx:if="{{!imagePath}}">
+      <view class="upload-icon">+</view>
+      <text class="upload-text">点击上传图片</text>
+      <text class="upload-hint">JPG / PNG / WebP</text>
+    </block>
+    <block wx:else>
+      <image class="upload-preview" src="{{imagePath}}" mode="aspectFit"></image>
+      <text class="upload-replace">点击更换图片</text>
+    </block>
+  </view>
+
+  <!-- 参数区 -->
+  <scroll-view scroll-y class="controls-scroll" style="max-height: calc(100vh - 720rpx);">
+    <view class="controls-area">
+      <block wx:for="{{visibleControls}}" wx:key="key">
+        <!-- 卡片选择 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'card-select'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <view class="card-select-row">
+            <view class="card-opt {{params[item.key] === opt.id ? 'active' : ''}} {{opt.default && !params[item.key] ? 'active' : ''}}"
+                  wx:for="{{item.options}}" wx:for-item="opt" wx:for-index="oi" wx:key="id"
+                  bindtap="onCardSelect" data-key="{{item.key}}" data-value="{{opt.id}}">
+              <text class="card-opt-name">{{opt.name}}</text>
+              <text class="card-opt-desc" wx:if="{{opt.desc}}">{{opt.desc}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 标签页切换 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'tabs'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <view class="tabs-row">
+            <view class="tab-item {{params[item.key] === opt.id ? 'active' : ''}}"
+                  wx:for="{{item.options}}" wx:for-item="opt" wx:key="id"
+                  bindtap="onTabSelect" data-key="{{item.key}}" data-value="{{opt.id}}">
+              {{opt.name}}
+            </view>
+          </view>
+        </view>
+
+        <!-- Chips 多选 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'chips'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <view class="chips-row">
+            <view class="chip {{params[item.key] === opt.id ? 'active' : ''}}"
+                  wx:for="{{item.options}}" wx:for-item="opt" wx:key="id"
+                  bindtap="onChipSelect" data-key="{{item.key}}" data-value="{{opt.id}}">
+              {{opt.name}}
+            </view>
+          </view>
+        </view>
+
+        <!-- 滑块 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'slider'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <view class="slider-row">
+            <view class="slider-track" bindtap="onSliderTap" data-key="{{item.key}}" data-count="{{item.options.length}}">
+              <view class="slider-fill" style="width: {{(params[item.key] || 0) / (item.options.length - 1) * 100}}%"></view>
+            </view>
+            <text class="slider-val">{{item.options[params[item.key] || 0]}}</text>
+          </view>
+        </view>
+
+        <!-- 开关 -->
+        <view class="ctrl-group ctrl-row" wx:if="{{item.type === 'switch'}}">
+          <view class="ctrl-row-left">
+            <text class="ctrl-label">{{item.label}}</text>
+            <text class="ctrl-sub" wx:if="{{item.desc}}">{{item.desc}}</text>
+          </view>
+          <switch class="ctrl-switch" checked="{{params[item.key] !== undefined ? params[item.key] : item.default}}"
+                  color="#07C160" bindchange="onSwitchChange" data-key="{{item.key}}" />
+        </view>
+
+        <!-- 风格网格 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'style-grid'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <scroll-view scroll-x class="style-grid-scroll" enhanced show-scrollbar="{{false}}">
+            <view class="style-grid">
+              <view class="style-card {{params[item.key] === opt.id ? 'active' : ''}}"
+                    wx:for="{{item.options}}" wx:for-item="opt" wx:key="id"
+                    bindtap="onCardSelect" data-key="{{item.key}}" data-value="{{opt.id}}">
+                <text class="style-card-name">{{opt.name}}</text>
+                <text class="style-card-desc">{{opt.desc}}</text>
+                <text class="style-card-tags" wx:if="{{opt.tags}}">{{opt.tagsText}}</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <!-- 模板网格 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'template-grid'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <view class="template-grid">
+            <view class="template-card {{params[item.key] === opt.id ? 'active' : ''}}"
+                  wx:for="{{item.options}}" wx:for-item="opt" wx:key="id"
+                  bindtap="onCardSelect" data-key="{{item.key}}" data-value="{{opt.id}}">
+              <text class="template-icon">{{opt.icon}}</text>
+              <text class="template-name">{{opt.name}}</text>
+              <text class="template-desc">{{opt.desc}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 文本输入 -->
+        <view class="ctrl-group" wx:if="{{item.type === 'textarea'}}">
+          <text class="ctrl-label">{{item.label}}</text>
+          <textarea class="ctrl-textarea" placeholder="{{item.placeholder}}"
+                    value="{{params[item.key] || ''}}" bindinput="onTextInput"
+                    data-key="{{item.key}}" maxlength="200" auto-height
+                    show-confirm-bar="{{false}}" />
+        </view>
+      </block>
+    </view>
+
+    <!-- 提示词预览 -->
+    <view class="prompt-section">
+      <view class="prompt-header" bindtap="togglePromptExpand">
+        <text class="prompt-title">提示词预览</text>
+        <text class="prompt-expand">{{promptExpanded ? '收起' : '展开'}}</text>
+      </view>
+      <view class="prompt-body" wx:if="{{promptExpanded}}">
+        <textarea class="prompt-text" value="{{finalPrompt}}" bindinput="onPromptEdit"
+                  auto-height show-confirm-bar="{{false}}" />
+      </view>
+      <view class="prompt-body prompt-preview" wx:else>
+        <text class="prompt-preview-text">{{finalPrompt || '选择参数后自动生成提示词'}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-bar">
+    <view class="btn-copy" bindtap="onCopyPrompt" wx:if="{{finalPrompt}}">复制提示词</view>
+    <button class="btn-generate {{!canGenerate || generating ? 'disabled' : ''}}"
+            bindtap="onGenerate" disabled="{{!canGenerate || generating}}">
+      {{generating ? '生成中 ' + progress + '%' : '开始生成'}}
+    </button>
+  </view>
+
+  <!-- 结果区 -->
+  <view class="result-mask" wx:if="{{showResult}}" bindtap="closeResult"></view>
+  <view class="result-panel {{showResult ? 'show' : ''}}">
+    <view class="result-header">
+      <text class="result-title">生成结果</text>
+      <text class="result-close" bindtap="closeResult">×</text>
+    </view>
+    <view class="result-body">
+      <image class="result-image" src="{{resultUrl}}" mode="aspectFit" wx:if="{{resultUrl}}"></image>
+      <view class="result-loading" wx:if="{{generating && !resultUrl}}">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">AI 正在生成中...</text>
+      </view>
+    </view>
+    <view class="result-actions" wx:if="{{resultUrl}}">
+      <view class="result-btn" bindtap="onCompareOriginal">对比原图</view>
+      <view class="result-btn" bindtap="onCopyPrompt">复制提示词</view>
+      <view class="result-btn primary" bindtap="onSaveResult">保存图片</view>
+    </view>
+  </view>
+</view>
