@@ -1,0 +1,21 @@
+<view class="dual-slider">
+  <view class="slider-track" bindtap="onTrackTap">
+    <view class="track-negative" style="width: {{negativeWidth}}%; background: {{value < 0 ? '#E24B4A' : '#f0f0f0'}};"></view>
+    <view class="track-positive" style="width: {{positiveWidth}}%; background: {{value > 0 ? '#FE2C55' : '#f0f0f0'}};"></view>
+    <view class="track-zero" style="left: 50%;"></view>
+    <view class="slider-thumb {{value < 0 ? 'thumb-negative' : value > 0 ? 'thumb-positive' : ''}}"
+          style="left: {{thumbLeft}}%;"
+          catchtouchstart="onTouchStart"
+          catchtouchmove="onTouchMove"
+          catchtouchend="onTouchEnd">
+    </view>
+  </view>
+  <view class="slider-labels">
+    <text class="label-negative">-100%</text>
+    <text class="label-zero">0</text>
+    <text class="label-positive">+100%</text>
+  </view>
+  <view class="slider-value" wx:if="{{showValue}}">
+    <text class="{{value < 0 ? 'text-neg' : value > 0 ? 'text-pos' : ''}}">{{value > 0 ? '+' : ''}}{{value}}%</text>
+  </view>
+</view>

@@ -1,0 +1,48 @@
+<view class="page">
+  <!-- 背景装饰 -->
+  <view class="bg-glow bg-glow-pink"></view>
+  <view class="bg-glow bg-glow-cyan"></view>
+  <view class="bg-grid"></view>
+
+  <!-- 顶部品牌区 -->
+  <view class="brand">
+    <view class="brand-logo">
+      <text class="brand-logo-text">P</text>
+    </view>
+    <view class="brand-text">
+      <text class="brand-title">P图精修必拍</text>
+      <text class="brand-sub">AI 一键精修 · 废片变大片</text>
+    </view>
+  </view>
+
+  <!-- 主视觉 -->
+  <view class="hero">
+    <view class="hero-tag">
+      <text class="hero-dot"></text>
+      <text>豆包 Seedream 5.0 驱动</text>
+    </view>
+    <text class="hero-title">拯救废片</text>
+    <text class="hero-title hero-title-accent">还原你的美</text>
+    <text class="hero-desc">上传照片，AI 智能精修人像、光影、肤质、色调，朋友圈大片随手出。</text>
+
+    <view class="feature-row">
+      <view class="feature-chip"><text class="feature-ico">✨</text><text>AI精修</text></view>
+      <view class="feature-chip"><text class="feature-ico">📸</text><text>职业照</text></view>
+      <view class="feature-chip"><text class="feature-ico">👗</text><text>换装换景</text></view>
+      <view class="feature-chip"><text class="feature-ico">🎨</text><text>风格转换</text></view>
+    </view>
+  </view>
+
+  <!-- 底部 CTA -->
+  <view class="bottom-panel">
+    <button class="start-btn" bindtap="onStartTap" hover-class="start-btn-hover" hover-stay-time="80">
+      <text class="start-btn-text">选图开始修</text>
+      <text class="start-btn-arrow">›</text>
+    </button>
+    <view class="bottom-tips">
+      <text class="tip-item">🔒 图片7天自动销毁</text>
+      <text class="tip-dot">·</text>
+      <text class="tip-item">最多批量20张</text>
+    </view>
+  </view>
+</view>

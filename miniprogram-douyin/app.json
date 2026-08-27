@@ -12,22 +12,25 @@
     "pages/album/album",
     "pages/lab/index",
     "pages/lab/runner",
-    "pages/lab/prompt-tester",
-    "pages/lab/prompt-history",
-    "pages/lab/prompt-history-detail",
     "pages/mine/mine"
   ],
   "window": {
     "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "精修家",
+    "navigationBarTitleText": "P图精修必拍",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f7f7f7",
     "backgroundTextStyle": "dark"
   },
+  "usePrivacyCheck": true,
+  "permission": {
+    "scope.camera": {
+      "desc": "用于拍摄照片进行AI精修"
+    }
+  },
   "tabBar": {
     "custom": true,
     "color": "#999999",
-    "selectedColor": "#07C160",
+    "selectedColor": "#FE2C55",
     "backgroundColor": "#ffffff",
     "list": [
       {
@@ -51,7 +54,5 @@
         "text": "我的"
       }
     ]
-  },
-  "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  }
 }

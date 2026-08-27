@@ -1,0 +1,95 @@
+.compare-container {
+  position: relative;
+  width: 100%;
+  height: 500rpx;
+  overflow: hidden;
+  border-radius: 16rpx;
+  background: #f5f5f5;
+  user-select: none;
+}
+
+.compare-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.compare-after-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.compare-after {
+  width: 690rpx;
+  max-width: none;
+}
+
+.compare-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4rpx;
+  background: #fff;
+  z-index: 3;
+  transform: translateX(-2rpx);
+  box-shadow: 0 0 8rpx rgba(0,0,0,0.3);
+}
+
+.compare-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.handle-line {
+  width: 2rpx;
+  height: 28rpx;
+  background: #ddd;
+}
+
+.handle-arrow {
+  font-size: 28rpx;
+  color: #FE2C55;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.handle-left { margin-right: 4rpx; }
+.handle-right { margin-left: 4rpx; }
+
+.compare-label {
+  position: absolute;
+  top: 20rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  z-index: 4;
+}
+
+.label-before {
+  left: 20rpx;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+}
+
+.label-after {
+  right: 20rpx;
+  background: rgba(7,193,96,0.9);
+  color: #fff;
+}

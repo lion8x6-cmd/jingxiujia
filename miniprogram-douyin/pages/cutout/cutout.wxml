@@ -1,0 +1,54 @@
+<view class="page">
+  <view class="canvas-area">
+    <view class="img-wrapper" id="imgWrapper">
+      <image class="edit-image" src="{{imageSrc}}" mode="aspectFit" bindload="onImageReady"></image>
+      <view class="cutout-mask" wx:if="{{autoCutDone}}">
+        <view class="cutout-result">
+          <text class="cutout-check">✓ 主体已识别</text>
+        </view>
+      </view>
+    </view>
+    <view class="canvas-hint" wx:if="{{!autoCutDone}}">AI正在识别主体...</view>
+  </view>
+
+  <view class="tool-bar" wx:if="{{autoCutDone}}">
+    <view class="tool-tabs">
+      <view class="tool-tab {{toolMode === 'erase' ? 'active' : ''}}" bindtap="setTool" data-mode="erase">
+        <text>手动擦除</text>
+      </view>
+      <view class="tool-tab {{toolMode === 'restore' ? 'active' : ''}}" bindtap="setTool" data-mode="restore">
+        <text>恢复区域</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="edit-panel" wx:if="{{autoCutDone}}">
+    <view class="panel-label">更换背景</view>
+    <scroll-view scroll-x class="bg-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="bg-item {{selectedBg === 'transparent' ? 'active' : ''}}" bindtap="selectBg" data-bg="transparent">
+        <view class="bg-transparent"></view>
+        <text>透明</text>
+      </view>
+      <view class="bg-item {{selectedBg === 'white' ? 'active' : ''}}" bindtap="selectBg" data-bg="white">
+        <view class="bg-white"></view>
+        <text>白色</text>
+      </view>
+      <view class="bg-item {{selectedBg === 'blue' ? 'active' : ''}}" bindtap="selectBg" data-bg="blue">
+        <view class="bg-blue"></view>
+        <text>证件蓝</text>
+      </view>
+      <view class="bg-item {{selectedBg === 'red' ? 'active' : ''}}" bindtap="selectBg" data-bg="red">
+        <view class="bg-red"></view>
+        <text>证件红</text>
+      </view>
+      <view class="bg-item {{selectedBg === 'blur' ? 'active' : ''}}" bindtap="selectBg" data-bg="blur">
+        <view class="bg-blur"></view>
+        <text>模糊</text>
+      </view>
+    </scroll-view>
+    <view class="panel-actions">
+      <button class="btn-cancel" bindtap="resetCut">重抠</button>
+      <button class="btn-submit" bindtap="confirmCut">确认抠图</button>
+    </view>
+  </view>
+</view>

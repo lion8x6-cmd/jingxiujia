@@ -1,0 +1,29 @@
+<view class="page">
+  <view class="canvas-area" bindtouchstart="onCanvasTouchStart" bindtouchmove="onCanvasTouchMove" bindtouchend="onCanvasTouchEnd">
+    <image class="edit-image" src="{{imageSrc}}" mode="aspectFit" id="editImage" bindload="onImageReady"></image>
+    <view class="selection-box" wx:if="{{selection}}"
+          style="left:{{selection.x}}px;top:{{selection.y}}px;width:{{selection.width}}px;height:{{selection.height}}px;"
+          catchtouchstart="onSelectionMove" catchtouchmove="onSelectionDrag">
+      <view class="selection-border"></view>
+      <view class="selection-label">已选文字区域</view>
+      <view class="resize-handle" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove"></view>
+    </view>
+    <view class="canvas-hint" wx:if="{{!selection && !processing}}">在图片上框选要替换的文字区域</view>
+  </view>
+
+  <view class="edit-panel" wx:if="{{selection && !processing}}">
+    <view class="panel-label">替换为</view>
+    <input class="text-input" placeholder="输入新文字" value="{{newText}}" bindinput="onTextInput" maxlength="50"/>
+    <view class="panel-actions">
+      <button class="btn-cancel" bindtap="cancelSelection">重选</button>
+      <button class="btn-submit" bindtap="submitEdit">开始处理</button>
+    </view>
+  </view>
+
+  <view class="processing-mask" wx:if="{{processing}}">
+    <view class="processing-card">
+      <view class="processing-spinner"></view>
+      <text class="processing-text">AI 处理中... {{progress}}%</text>
+    </view>
+  </view>
+</view>

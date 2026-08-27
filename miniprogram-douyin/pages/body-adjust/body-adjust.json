@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "部位调节",
+  "usingComponents": {
+    "dual-slider": "/components/dual-slider/dual-slider"
+  }
+}

@@ -1,8 +1,8 @@
+const platform = require('../../utils/platform.js');
 const storage = require('../../utils/storage');
 const aiService = require('../../utils/ai-service');
 const { TaskStatus } = require('../../utils/task-status');
 const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image');
-const { matchBrightness } = require('../../utils/brightness-match');
 
 Page({
   data: {
@@ -129,7 +129,7 @@ Page({
   },
 
   measureStage() {
-    const query = wx.createSelectorQuery().in(this);
+    const query = platform.createSelectorQuery().in(this);
     query.select('.stage').boundingClientRect(rect => {
       if (rect) {
         this._stageRect = rect;
@@ -157,14 +157,14 @@ Page({
     if (this.data.generating) return;
     this._longPressActive = true;
     this.setData({ showOriginal: true });
-    if (wx.vibrateShort) wx.vibrateShort({ type: 'light' });
+    if (platform.vibrateShort) platform.vibrateShort({ type: 'light' });
   },
 
   onBtnLongPress() {
     if (this.data.generating) return;
     this._longPressActive = true;
     this.setData({ showOriginal: true });
-    if (wx.vibrateShort) wx.vibrateShort({ type: 'light' });
+    if (platform.vibrateShort) platform.vibrateShort({ type: 'light' });
   },
 
   releaseOriginal() {
@@ -263,10 +263,10 @@ Page({
     if (this.data.generating) return;
     const v = this.data.versions[this.data.versionIdx];
     if (!v || v.isOriginal) {
-      wx.showToast({ title: '原图不可删除', icon: 'none' });
+      platform.showToast({ title: '原图不可删除', icon: 'none' });
       return;
     }
-    wx.showModal({
+    platform.showModal({
       title: '删除该版本',
       content: '确定要删除这一版精修图吗？其他版本不受影响。',
       confirmText: '删除',
@@ -332,8 +332,8 @@ Page({
       storage.removeRecords([currentItem.id]);
       remainingBatchItems = batchItems.filter(b => b.id !== currentItem.id);
       if (!remainingBatchItems.length) {
-        wx.showToast({ title: '已删除', icon: 'success' });
-        setTimeout(() => wx.navigateBack(), 600);
+        platform.showToast({ title: '已删除', icon: 'success' });
+        setTimeout(() => platform.navigateBack(), 600);
         return;
       }
       nextIdx = Math.min(this.data.currentIndex, remainingBatchItems.length - 1);
@@ -363,7 +363,7 @@ Page({
       this.recomputeCanSubmit();
       this.syncSaveSelectAll();
     });
-    wx.showToast({ title: '已删除', icon: 'success' });
+    platform.showToast({ title: '已删除', icon: 'success' });
   },
 
   // ============ 图片区手势 ============
@@ -691,7 +691,7 @@ Page({
     if (!stage || !this.data.currentItem) return null;
     // 用 image 组件的实际尺寸来算
     return new Promise(resolve => {
-      wx.createSelectorQuery().in(this)
+      platform.createSelectorQuery().in(this)
         .select('.stage-img').boundingClientRect(rect => {
           if (!rect) { resolve(null); return; }
           // image mode=aspectFit 时，rect 是组件容器大小；需要知道图片实际内容区域
@@ -809,7 +809,7 @@ Page({
     }
     // 空白处开始绘制新选区
     if (this.data.localRegions.length >= 5) {
-      wx.showToast({ title: '最多添加5个区域', icon: 'none' });
+      platform.showToast({ title: '最多添加5个区域', icon: 'none' });
       return;
     }
     this.setData({
@@ -915,11 +915,11 @@ Page({
 
   addNewRegion() {
     if (this.data.localRegions.length >= 5) {
-      wx.showToast({ title: '最多添加5个区域', icon: 'none' });
+      platform.showToast({ title: '最多添加5个区域', icon: 'none' });
       return;
     }
     this.setData({ activeRegionId: null });
-    wx.showToast({ title: '请在图片上拖动框选', icon: 'none' });
+    platform.showToast({ title: '请在图片上拖动框选', icon: 'none' });
   },
 
   onRegionPromptInput(e) {
@@ -1028,23 +1028,17 @@ Page({
     if (mode === 'local') {
       const valid = this.data.localRegions.filter(r => (r.prompt || '').trim());
       if (!valid.length) {
-        wx.showToast({ title: '请为选区输入修改指令', icon: 'none' }); return;
+        platform.showToast({ title: '请为选区输入修改指令', icon: 'none' }); return;
       }
-      // Seedream 5.0 Pro 交互编辑要求使用完整句式标注 bbox，
-      // 并显式声明"区域外保持不变"，否则模型会把 bbox 当普通文字、对整张图重新生成。
-      const regionLines = valid.map(r =>
-        `<bbox>${r.x1} ${r.y1} ${r.x2} ${r.y2}</bbox>区域：${r.prompt.trim()}`
-      ).join('；');
-      localPrompt = `请对图片进行以下局部修改：${regionLines}。`
-        + `注意：仅修改上述 bbox 标注区域内的像素内容，bbox 以外区域必须逐像素保持与原图完全一致，不得做任何全局调整。`
-        + `严格禁止：改变画面整体亮度、曝光、对比度、白平衡、色阶、饱和度、伽马值、色温；禁止重新打光、补光、添加闪光灯效果；禁止改变背景色调和光影方向。`
-        + `输出图片的曝光参数、色彩分布、明暗直方图必须与参考图一致，仅 bbox 内部允许变化。`;
+      localPrompt = valid.map(r =>
+        `<bbox>${r.x1} ${r.y1} ${r.x2} ${r.y2}</bbox> ${r.prompt.trim()}`
+      ).join('\n');
     }
     if (mode === 'quick' && !this.data.hasAdjustments) {
-      wx.showToast({ title: '请先调节部位', icon: 'none' }); return;
+      platform.showToast({ title: '请先调节部位', icon: 'none' }); return;
     }
     if (mode === 'ai' && !aiText) {
-      wx.showToast({ title: '请告诉 AI 怎么调节', icon: 'none' }); return;
+      platform.showToast({ title: '请告诉 AI 怎么调节', icon: 'none' }); return;
     }
 
     // 参考图始终用最新精修图（没有则用原图）
@@ -1075,30 +1069,7 @@ Page({
       // 小延迟让用户看到 100%
       await new Promise(r => setTimeout(r, 300));
 
-      let newUrl = result.url;
-
-      // 局部编辑模式：AI 图生图会导致 bbox 外亮度漂移，
-      // 用 Canvas 将结果图【框外区域】亮度对齐到参考图，消除全局变亮。
-      if (mode === 'local') {
-        const refForMatch = refPath || refUrl;
-        // 本次提交的所有框选区域（归一化 0-999），校正时排除框内像素
-        const editRegions = this.data.localRegions
-          .filter(r => (r.prompt || '').trim())
-          .map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }));
-        if (refForMatch && newUrl && newUrl.indexOf('data:') !== 0 && newUrl.indexOf('http') !== 0) {
-          try {
-            wx.showLoading({ title: '校正亮度...', mask: true });
-            newUrl = await matchBrightness(newUrl, refForMatch, {
-              threshold: 2,
-              regions: editRegions
-            });
-            wx.hideLoading();
-          } catch (e) {
-            wx.hideLoading();
-            console.warn('[compare] 亮度校正失败，使用原图:', e);
-          }
-        }
-      }
+      const newUrl = result.url;
       const history = Array.isArray(item.history) ? item.history.slice() : [];
       if (item.resultUrl) {
         history.push({
@@ -1141,12 +1112,12 @@ Page({
         this.updateVersionState();
         this.recomputeCanSubmit();
       });
-      wx.showToast({ title: '生成完成', icon: 'success' });
+      platform.showToast({ title: '生成完成', icon: 'success' });
     } catch (err) {
       this.stopProgressAnim();
       console.error('[compare] 再次调节失败:', err);
       this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });
-      wx.showToast({ title: err.message || '生成失败，请重试', icon: 'none' });
+      platform.showToast({ title: err.message || '生成失败，请重试', icon: 'none' });
     }
   },
 
@@ -1192,42 +1163,42 @@ Page({
     this.closeSaveSheet();
     var url = this.data.displayUrl;
     if (!url) {
-      wx.showToast({ title: '图片尚未就绪', icon: 'none' });
+      platform.showToast({ title: '图片尚未就绪', icon: 'none' });
       return;
     }
-    wx.showLoading({ title: '保存中...', mask: true });
+    platform.showLoading({ title: '保存中...', mask: true });
     saveImageToAlbum(url)
       .then(() => {
-        wx.hideLoading();
-        wx.showToast({ title: '已保存到相册', icon: 'success' });
+        platform.hideLoading();
+        platform.showToast({ title: '已保存到相册', icon: 'success' });
       })
       .catch(async (err) => {
-        wx.hideLoading();
+        platform.hideLoading();
         console.error('[compare] saveToLocal failed:', err);
         if (isAuthDenied(err)) {
           var granted = await showAuthGuide();
           if (granted) this.saveToLocal();
         } else {
           var msg = (err && err.message) || '保存失败';
-          wx.showToast({ title: msg, icon: 'none', duration: 2500 });
+          platform.showToast({ title: msg, icon: 'none', duration: 2500 });
         }
       });
   },
 
   batchSaveToLocal() {
     const items = this.getSelectedCompletedItems();
-    if (!items.length) { wx.showToast({ title: '未选择可保存的图片', icon: 'none' }); return; }
+    if (!items.length) { platform.showToast({ title: '未选择可保存的图片', icon: 'none' }); return; }
     this.closeSaveSheet();
-    wx.showLoading({ title: `0/${items.length}`, mask: true });
+    platform.showLoading({ title: `0/${items.length}`, mask: true });
     let ok = 0, fail = 0;
     const runNext = (idx) => {
       if (idx >= items.length) {
-        wx.hideLoading();
-        if (fail === 0) wx.showToast({ title: `已保存${ok}张`, icon: 'success' });
-        else wx.showModal({ title: '保存完成', content: `成功${ok}张，失败${fail}张`, showCancel: false });
+        platform.hideLoading();
+        if (fail === 0) platform.showToast({ title: `已保存${ok}张`, icon: 'success' });
+        else platform.showModal({ title: '保存完成', content: `成功${ok}张，失败${fail}张`, showCancel: false });
         return;
       }
-      wx.showLoading({ title: `${idx + 1}/${items.length}`, mask: true });
+      platform.showLoading({ title: `${idx + 1}/${items.length}`, mask: true });
       saveImageToAlbum(items[idx].resultUrl)
         .then(() => { ok++; runNext(idx + 1); })
         .catch((err) => {
@@ -1241,7 +1212,7 @@ Page({
 
   batchSaveToCloud() {
     const items = this.getSelectedCompletedItems();
-    if (!items.length) { wx.showToast({ title: '未选择可保存的图片', icon: 'none' }); return; }
+    if (!items.length) { platform.showToast({ title: '未选择可保存的图片', icon: 'none' }); return; }
     this.closeSaveSheet();
     items.forEach(i => {
       storage.addToAlbum({
@@ -1250,7 +1221,7 @@ Page({
       });
       storage.updateRecord(i.id, { savedToAlbum: true });
     });
-    wx.showToast({ title: `已转存${items.length}张到云相册`, icon: 'success' });
+    platform.showToast({ title: `已转存${items.length}张到云相册`, icon: 'success' });
   },
 
   saveToAlbum() {
@@ -1262,12 +1233,12 @@ Page({
       type: item.type || 'retouch', fromRecordId: item.id
     });
     storage.updateRecord(item.id, { savedToAlbum: true });
-    wx.showToast({ title: '已保存到云相册', icon: 'success' });
+    platform.showToast({ title: '已保存到云相册', icon: 'success' });
   },
 
   onShareAppMessage() {
     return {
-      title: '我用精修家修的图，来看看吧',
+      title: '我用P图精修必拍修的图，来看看吧',
       path: '/pages/index/index',
       imageUrl: this.data.displayUrl
     };

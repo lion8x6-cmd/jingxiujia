@@ -1,0 +1,15 @@
+<view class="compare-container" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+  <image class="compare-img compare-before" src="{{beforeSrc}}" mode="aspectFill"></image>
+  <view class="compare-after-wrap" style="width: {{sliderPos}}%;">
+    <image class="compare-img compare-after" src="{{afterSrc}}" mode="aspectFill"></image>
+  </view>
+  <view class="compare-divider" style="left: {{sliderPos}}%;">
+    <view class="compare-handle">
+      <view class="handle-arrow handle-left">‹</view>
+      <view class="handle-line"></view>
+      <view class="handle-arrow handle-right">›</view>
+    </view>
+  </view>
+  <view class="compare-label label-before">原图</view>
+  <view class="compare-label label-after">精修后</view>
+</view>

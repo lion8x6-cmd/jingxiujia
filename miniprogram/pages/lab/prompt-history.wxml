@@ -1,0 +1,32 @@
+<view class="page">
+  <view class="header">
+    <text class="header-title">测试历史</text>
+    <view class="clear-btn" bindtap="confirmClear" wx:if="{{records.length}}">清空</view>
+  </view>
+
+  <view class="empty" wx:if="{{!records.length}}">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无测试记录</text>
+    <text class="empty-hint">生成图片后会自动保存到这里</text>
+  </view>
+
+  <view class="record-list" wx:else>
+    <view class="record-card" wx:for="{{records}}" wx:key="id"
+          bindtap="openDetail" data-id="{{item.id}}">
+      <view class="record-thumbs">
+        <image class="thumb" src="{{item.originalPath}}" mode="aspectFill"></image>
+        <view class="thumb-arrow">→</view>
+        <image class="thumb result" src="{{item.resultPath}}" mode="aspectFill"></image>
+      </view>
+      <view class="record-info">
+        <view class="record-name" wx:if="{{item.promptName}}">
+          <text class="name-tag">{{item.promptName}}</text>
+        </view>
+        <text class="record-prompt">{{item.prompt}}</text>
+        <text class="record-time">{{item.timeText}}</text>
+      </view>
+      <text class="record-arrow">›</text>
+      <view class="record-del" catchtap="deleteRecord" data-id="{{item.id}}">×</view>
+    </view>
+  </view>
+</view>

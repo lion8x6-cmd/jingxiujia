@@ -1,0 +1,148 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 0 24rpx calc(40rpx + env(safe-area-inset-bottom));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 8rpx;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.clear-btn {
+  font-size: 26rpx;
+  color: #999;
+  padding: 8rpx 20rpx;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #bbb;
+}
+
+/* 记录卡片 */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.record-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  gap: 20rpx;
+  position: relative;
+}
+
+.record-card:active {
+  background: #fafafa;
+}
+
+.record-thumbs {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+
+.thumb {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 10rpx;
+  background: #f0f0f0;
+}
+
+.thumb.result {
+  border: 2rpx solid #07c160;
+}
+
+.thumb-arrow {
+  font-size: 28rpx;
+  color: #ccc;
+}
+
+.record-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-name {
+  margin-bottom: 6rpx;
+}
+
+.name-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #07c160;
+  background: #f0faf4;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+.record-prompt {
+  display: -webkit-box;
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 8rpx;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.record-arrow {
+  font-size: 36rpx;
+  color: #ccc;
+  flex-shrink: 0;
+}
+
+.record-del {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 40rpx;
+  text-align: center;
+  font-size: 32rpx;
+  color: #ccc;
+  z-index: 2;
+}
+
+.record-del:active {
+  color: #e24b4a;
+}

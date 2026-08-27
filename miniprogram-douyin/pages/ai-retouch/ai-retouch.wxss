@@ -1,0 +1,269 @@
+.page {
+  height: 100vh;
+  background: #f7f7f7;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 上方图片预览区：占满底部面板以外的所有空间 */
+.image-section {
+  flex: 1;
+  min-height: 0;
+  margin: 24rpx 32rpx;
+  background: #1a1a1a;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  border-radius: 20rpx;
+}
+
+.placeholder-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  border: 4rpx dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+  color: #ccc;
+  margin-bottom: 20rpx;
+}
+
+.placeholder-text {
+  font-size: 30rpx;
+  color: #666;
+}
+
+.placeholder-hint {
+  font-size: 24rpx;
+  color: #bbb;
+  margin-top: 8rpx;
+}
+
+/* 单张图：等比例完整显示，不裁切不溢出 */
+.single-img {
+  width: 100%;
+  height: 100%;
+}
+
+/* 批量：网格可滚动 */
+.image-scroll {
+  width: 100%;
+  height: 100%;
+}
+
+.image-grid {
+  display: grid;
+  gap: 12rpx;
+  padding: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid-multi {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.image-item {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+}
+
+.selected-img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+}
+
+.image-remove {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.image-batch-badge {
+  position: absolute;
+  bottom: 8rpx;
+  left: 8rpx;
+  background: #FE2C55;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 16rpx;
+}
+
+.image-add {
+  width: 100%;
+  padding-top: 100%;
+  position: relative;
+  border: 2rpx dashed rgba(255,255,255,0.4);
+  border-radius: 12rpx;
+}
+
+.image-add text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 56rpx;
+  color: rgba(255,255,255,0.6);
+}
+
+/* 底部固定面板 */
+.bottom-panel {
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
+}
+
+.batch-toggle {
+  padding: 16rpx 24rpx;
+  background: #E1F5EE;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.batch-text {
+  font-size: 26rpx;
+  color: #0F6E56;
+}
+
+.batch-badge {
+  background: #FE2C55;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.template-row {
+  margin-bottom: 16rpx;
+}
+
+.template-scroll {
+  white-space: nowrap;
+}
+
+.template-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 20rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 16rpx;
+  background: #f7f7f7;
+  position: relative;
+  min-width: 110rpx;
+}
+
+.template-item.active {
+  background: #E1F5EE;
+  border: 2rpx solid #FE2C55;
+}
+
+.template-icon {
+  font-size: 36rpx;
+  margin-bottom: 4rpx;
+}
+
+.template-text {
+  font-size: 22rpx;
+  color: #333;
+}
+
+.template-check {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  width: 30rpx;
+  height: 30rpx;
+  background: #FE2C55;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prompt-row {
+  position: relative;
+  margin-bottom: 16rpx;
+}
+
+.prompt-input {
+  width: 100%;
+  min-height: 80rpx;
+  max-height: 160rpx;
+  background: #f7f7f7;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  padding-bottom: 36rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+
+.prompt-count {
+  position: absolute;
+  bottom: 10rpx;
+  right: 20rpx;
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.btn-row {
+  margin-top: 4rpx;
+}
+
+.btn-submit {
+  background: #FE2C55;
+  color: #fff;
+  border: none;
+  border-radius: 48rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  padding: 22rpx 0;
+  line-height: 1.4;
+}
+
+.btn-submit::after {
+  border: none;
+}
+
+.btn-submit[disabled] {
+  background: #ccc;
+  color: #fff;
+}

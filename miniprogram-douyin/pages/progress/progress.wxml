@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="progress-card">
+    <ring-progress percent="{{progress}}" size="{{320}}" label="{{statusText}}"></ring-progress>
+    <view class="progress-info">
+      <view class="progress-title">{{statusTitle}}</view>
+      <view class="progress-desc" wx:if="{{isBatch}}">第 {{completedCount}}/{{total}} 张 · 预计还剩 {{estimatedTime}} 秒</view>
+      <view class="progress-desc" wx:else>{{progressHint}}</view>
+    </view>
+  </view>
+
+  <view class="batch-grid" wx:if="{{isBatch && displayItems.length > 0}}">
+    <view class="grid-cell {{item.status}}" wx:for="{{displayItems}}" wx:key="id">
+      <image src="{{item.originalUrl}}" mode="aspectFill" class="grid-img"></image>
+
+      <view class="corner-done" wx:if="{{item.status === 'completed'}}">✓</view>
+      <view class="corner-fail" wx:elif="{{item.status === 'failed'}}">!</view>
+      <view class="corner-cancel" wx:elif="{{item.status === 'cancelled'}}">⏸</view>
+
+      <view class="corner-spin" wx:elif="{{item.status === 'processing'}}">
+        <view class="mini-spinner"></view>
+      </view>
+      <view class="corner-pending" wx:else></view>
+    </view>
+  </view>
+
+  <view class="action-row">
+    <button class="btn-stop" bindtap="onStopTap" wx:if="{{!cancelled}}">停止生成</button>
+    <button class="btn-stopped" disabled wx:else>已停止</button>
+  </view>
+
+  <view class="tips-card">
+    <view class="tip-item">
+      <text class="tip-icon">💡</text>
+      <text class="tip-text">处理期间可离开页面，完成后可在「生成记录」查看结果</text>
+    </view>
+    <button class="btn-background" bindtap="runInBackground">后台运行</button>
+  </view>
+</view>

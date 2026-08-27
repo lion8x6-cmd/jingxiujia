@@ -1,0 +1,8 @@
+<view class="ring-container" style="width: {{size}}rpx; height: {{size}}rpx;">
+  <canvas type="2d" id="ringCanvas" class="ring-canvas"
+          style="width: {{size}}rpx; height: {{size}}rpx;"></canvas>
+  <view class="ring-center">
+    <text class="ring-percent">{{percent}}%</text>
+    <text class="ring-label" wx:if="{{label}}">{{label}}</text>
+  </view>
+</view>

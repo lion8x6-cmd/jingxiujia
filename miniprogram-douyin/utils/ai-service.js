@@ -1,4 +1,5 @@
 // AI服务 - 豆包 Doubao-Seedream-5.0-pro
+const platform = require('./platform.js');
 const app = getApp();
 const { TaskStatus, RETRY_CONFIG } = require('./task-status');
 const { ARK_CONFIG, PART_PROMPT_MAP, BASE_RETOUCH_PROMPT } = require('./ark-config');
@@ -26,7 +27,7 @@ function uploadImage(filePath, onProgress) {
       }, 200);
       return;
     }
-    const uploadTask = wx.uploadFile({
+    const uploadTask = platform.uploadFile({
       url: app.globalData.baseUrl + '/api/upload',
       filePath,
       name: 'file',
@@ -55,7 +56,7 @@ async function submitRetouch(options) {
     return { taskId, status: TaskStatus.QUEUED };
   }
   return new Promise((resolve, reject) => {
-    wx.request({
+    platform.request({
       url: app.globalData.baseUrl + '/api/ai/retouch',
       method: 'POST',
       header: { Authorization: 'Bearer ' + app.globalData.token },
@@ -72,7 +73,7 @@ async function submitToolTask(toolType, options) {
     return { taskId: 'task_' + Date.now(), status: TaskStatus.QUEUED, toolType };
   }
   return new Promise((resolve, reject) => {
-    wx.request({
+    platform.request({
       url: app.globalData.baseUrl + '/api/ai/' + toolType,
       method: 'POST',
       header: { Authorization: 'Bearer ' + app.globalData.token },
@@ -100,7 +101,7 @@ function pollTaskStatus(taskId, onUpdate) {
         retryCount++;
       } else {
         const res = await new Promise((resolve, reject) => {
-          wx.request({
+          platform.request({
             url: app.globalData.baseUrl + '/api/task/' + taskId,
             header: { Authorization: 'Bearer ' + app.globalData.token },
             success: (r) => resolve(r.data),
@@ -140,7 +141,7 @@ function connectTaskWebSocket(taskId, onUpdate) {
   if (USE_MOCK) {
     return pollTaskStatus(taskId, onUpdate);
   }
-  const socketTask = wx.connectSocket({
+  const socketTask = platform.connectSocket({
     url: app.globalData.baseUrl.replace('http', 'ws') + '/ws/task/' + taskId,
     header: { Authorization: 'Bearer ' + app.globalData.token }
   });
@@ -184,7 +185,7 @@ function buildAdjustPrompt(adjustments, basePrompt) {
 // 策略：先查文件大小，超过 2MB 则压缩到 quality=80，仍超过则降到 quality=60
 function compressImageIfNeeded(filePath) {
   return new Promise((resolve) => {
-    const fs = wx.getFileSystemManager();
+    const fs = platform.getFileSystemManager();
     let fileSize = 0;
     try {
       const stat = fs.statSync(filePath);
@@ -202,7 +203,7 @@ function compressImageIfNeeded(filePath) {
     }
 
     // 第一轮压缩 quality=80
-    wx.compressImage({
+    platform.compressImage({
       src: filePath,
       quality: 80,
       success: (res) => {
@@ -212,7 +213,7 @@ function compressImageIfNeeded(filePath) {
         } catch (e) {}
         // 压缩后仍 > 2MB，再压一次 quality=60
         if (compressedSize > 2 * 1024 * 1024) {
-          wx.compressImage({
+          platform.compressImage({
             src: res.tempFilePath,
             quality: 60,
             success: (r2) => resolve(r2.tempFilePath),
@@ -233,7 +234,7 @@ async function fileToBase64(filePath) {
   // 先压缩，避免大图导致请求体过大
   const compressedPath = await compressImageIfNeeded(filePath);
   return new Promise((resolve, reject) => {
-    const fs = wx.getFileSystemManager();
+    const fs = platform.getFileSystemManager();
     fs.readFile({
       filePath: compressedPath,
       encoding: 'base64',
@@ -272,14 +273,14 @@ function isRemoteUrl(url) {
 // 下载网络图片并转为 base64（避免直接传 URL 给豆包时因签名过期/防盗链导致黑图）
 function downloadToBase64(url) {
   return new Promise((resolve, reject) => {
-    wx.downloadFile({
+    platform.downloadFile({
       url,
       success: (res) => {
         if (res.statusCode !== 200) {
           reject(new Error('下载参考图失败(' + res.statusCode + ')'));
           return;
         }
-        const fs = wx.getFileSystemManager();
+        const fs = platform.getFileSystemManager();
         fs.readFile({
           filePath: res.tempFilePath,
           encoding: 'base64',
@@ -327,7 +328,7 @@ function createCancelToken() {
 
 function arkRequestOnce(body, signal) {
   return new Promise((resolve, reject) => {
-    const task = wx.request({
+    const task = platform.request({
       url: ARK_CONFIG.baseUrl + '/images/generations',
       method: 'POST',
       timeout: ARK_CONFIG.requestTimeout,
@@ -395,8 +396,8 @@ function arkRequestOnce(body, signal) {
 function writeBase64ToFile(b64Data) {
   return new Promise((resolve, reject) => {
     try {
-      const fs = wx.getFileSystemManager();
-      const filePath = wx.env.USER_DATA_PATH + '/result_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
+      const fs = platform.getFileSystemManager();
+      const filePath = platform.env.USER_DATA_PATH + '/result_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
       fs.writeFile({
         filePath,
         data: b64Data,
@@ -499,31 +500,16 @@ async function generateEdit(options) {
   const userInstruction = (customPrompt || '').trim();
   const hasAdjust = Object.values(adjustments || {}).some(v => v !== 0);
 
-  // 局部编辑模式：prompt 中已包含 <bbox> 坐标和严格的"区域外保持不变"约束。
-  // 不能拼接全图精修模板词，也不能发送模板的 negative_prompt——
-  // 模板负面词里含"脸部过亮/光影割裂/背景过曝"等全局光影约束，会引导模型重新调整整张图曝光，
-  // 导致局部修改后画面整体亮度漂移。局部模式改用专用的极简负面词，只禁止结构性破坏。
-  const isLocalEdit = userInstruction.indexOf('<bbox>') !== -1;
-
   if (userInstruction) {
-    if (isLocalEdit) {
-      prompt = userInstruction;
-    } else {
-      // AI 调节模式：用户自然语言指令为主，模板提示词作为风格基底
-      prompt = tplPrompt
-        ? tplPrompt + '；在此基础上按以下要求调整：' + userInstruction
-        : userInstruction;
-    }
+    // AI 调节模式：用户自然语言指令为主，模板提示词作为风格基底
+    prompt = tplPrompt
+      ? tplPrompt + '；在此基础上按以下要求调整：' + userInstruction
+      : userInstruction;
   } else if (hasAdjust) {
     prompt = buildAdjustPrompt(adjustments, tplPrompt);
   } else {
     prompt = tplPrompt || BASE_RETOUCH_PROMPT;
   }
-
-  // 局部编辑专用负面词：禁止全局曝光/色调/构图变化，避免区域外亮度漂移
-  const LOCAL_EDIT_NEGATIVE = '全局提亮，整体变亮，曝光增加，补光，闪光灯效果，'
-    + '改变亮度，改变对比度，改变白平衡，改变色温，改变饱和度，色偏，过曝，发白，'
-    + '画面变形，裁切，扩图，物体移位，水印，文字，畸形结构，模糊，噪点';
 
   const body = {
     model: ARK_CONFIG.model,
@@ -534,9 +520,7 @@ async function generateEdit(options) {
     watermark: ARK_CONFIG.watermark
   };
   if (imageRef) body.image = imageRef;
-  // 局部编辑用专用负面词；其他模式用模板负面词
-  const effectiveNegative = isLocalEdit ? LOCAL_EDIT_NEGATIVE : tplNegative;
-  if (effectiveNegative) body.negative_prompt = effectiveNegative;
+  if (tplNegative) body.negative_prompt = tplNegative;
 
   console.log('[ai-service] 调用 ARK，size:', ARK_CONFIG.size, 'prompt长度:', prompt.length,
     '图片:', imageRef ? (imageRef.startsWith('data:') ? 'base64(' + Math.round(imageRef.length / 1024) + 'KB)' : imageRef.substring(0, 80)) : '无');
