@@ -1,8 +1,8 @@
 // AI服务 - 豆包 Doubao-Seedream-5.0-pro
-const platform = require('./platform.js');
 const app = getApp();
 const { TaskStatus, RETRY_CONFIG } = require('./task-status');
 const { ARK_CONFIG, PART_PROMPT_MAP, BASE_RETOUCH_PROMPT } = require('./ark-config');
+const platform = require('./platform.js');
 
 // 自有后端相关流程（上传/提交任务/轮询）默认走 mock，待后端就绪后切换为 false
 const USE_MOCK = true;
@@ -179,6 +179,33 @@ function buildAdjustPrompt(adjustments, basePrompt) {
 
   parts.push('整体自然协调，避免过度修饰，保持照片真实感');
   return parts.join('；');
+}
+
+// AI 一句话（无框）提示词包装器：只执行用户指令，强约束锁定未提及内容。
+// 二次编辑绝不能带 t2 全图精修词，否则模型会重绘姿势/服装/光影/背景。
+function buildAiGlobalPrompt(instruction) {
+  return '请严格按以下要求编辑图片：【' + instruction + '】。\n'
+    + '必须遵守：\n'
+    + '1. 只修改上述要求明确涉及的内容，要求中未提及的一切必须与原图完全保持一致；\n'
+    + '2. 人物的长相、五官、表情、姿势、手势、站位、在画面中的位置、身材比例、肢体和手指数量一律不变；\n'
+    + '3. 服装的款式、颜色、穿着方式、遮挡关系一律不变（长裙不得变成开叉裙，不得新增裸露皮肤）；\n'
+    + '4. 若要求针对背景（如更换天空），只替换该背景区域，人物和前景逐像素保持不变，边缘自然融合；\n'
+    + '5. 构图、视角、画面尺寸、整体曝光、色调和光影方向保持不变，不裁切、不扩图、不移位；\n'
+    + '6. 禁止改变人物姿势，禁止移动人物位置，禁止增减肢体或手指。';
+}
+
+// AI 带框（bbox 锚点）提示词构建器：框出目标区域，同一句话只作用于框内，框外锁定。
+function buildAiRegionPrompt(instruction, regions) {
+  const regionLines = (regions || []).map(r =>
+    `<bbox>${r.x1} ${r.y1} ${r.x2} ${r.y2}</bbox>区域：${instruction}`
+  ).join('；\n');
+  return '请对图片以下指定区域进行修改：\n' + regionLines + '。\n'
+    + '必须遵守：\n'
+    + '1. 仅修改上述 bbox 标注区域内的内容，bbox 以外所有像素（包括人物其余部分、背景、服装、前景）必须与原图完全保持一致，不得做任何改动；\n'
+    + '2. 人物的姿势、手势、站位、位置、表情、长相不变，肢体和手指数量不变；\n'
+    + '3. 服装款式、颜色、穿着方式、遮挡关系不变（长裙不得变开叉，不得新增裸露）；\n'
+    + '4. 若修改的是背景区域（如天空），人物和前景逐像素保持不变，交界边缘自然融合；\n'
+    + '5. 构图、视角、尺寸、曝光、色调、光影方向保持不变，不裁切、不扩图。';
 }
 
 // 压缩图片到合理大小，避免 base64 体积过大导致请求失败
@@ -450,6 +477,7 @@ async function generateEdit(options) {
     basePrompt = '',
     negativePrompt = '',
     templateId,
+    aiRegions = null,   // AI 模式下用户框选的区域 [{x1,y1,x2,y2}]（0-999），有值时指令只作用于框内
     signal   // 取消令牌
   } = options;
 
@@ -497,19 +525,51 @@ async function generateEdit(options) {
 
   // 构建提示词：AI 自然语言指令优先，其次部位调节，最后模板基础提示词
   let prompt;
-  const userInstruction = (customPrompt || '').trim();
+  let userInstruction = (customPrompt || '').trim();
   const hasAdjust = Object.values(adjustments || {}).some(v => v !== 0);
 
+  // AI 模式下用户框选了区域：把一句话指令包成 bbox 锚点形式（只作用于框内，框外锁定）
+  const aiRegionList = Array.isArray(aiRegions)
+    ? aiRegions.filter(r => r && r.x2 > r.x1 && r.y2 > r.y1)
+    : [];
+  if (userInstruction && aiRegionList.length) {
+    userInstruction = buildAiRegionPrompt(userInstruction, aiRegionList);
+  }
+
+  // 局部编辑模式：prompt 中已包含 <bbox> 坐标和严格的"区域外保持不变"约束。
+  // 不能拼接全图精修模板词，也不能发送模板的 negative_prompt——
+  // 模板负面词里含"脸部过亮/光影割裂/背景过曝"等全局光影约束，会引导模型重新调整整张图曝光，
+  // 导致局部修改后画面整体亮度漂移。局部模式改用专用的极简负面词，只禁止结构性破坏。
+  const isLocalEdit = userInstruction.indexOf('<bbox>') !== -1;
+
   if (userInstruction) {
-    // AI 调节模式：用户自然语言指令为主，模板提示词作为风格基底
-    prompt = tplPrompt
-      ? tplPrompt + '；在此基础上按以下要求调整：' + userInstruction
-      : userInstruction;
+    if (isLocalEdit) {
+      // 局部编辑 / AI带框：compare 侧已拼好 bbox 坐标 + 区域外锁定约束，直接使用
+      prompt = userInstruction;
+    } else {
+      // AI 一句话（无框）：不再拼接 t2 全图精修词（会导致模型重绘姿势/服装/位置），
+      // 改用强约束包装器，只执行用户指令、锁定未提及内容。
+      prompt = buildAiGlobalPrompt(userInstruction);
+    }
   } else if (hasAdjust) {
     prompt = buildAdjustPrompt(adjustments, tplPrompt);
   } else {
     prompt = tplPrompt || BASE_RETOUCH_PROMPT;
   }
+
+  // 局部/AI带框 专用负面词：禁止全局曝光漂移 + 结构性破坏 + 姿势服装改变
+  const LOCAL_EDIT_NEGATIVE = '全局提亮，整体变亮，曝光增加，补光，闪光灯效果，'
+    + '改变亮度，改变对比度，改变白平衡，改变色温，改变饱和度，色偏，过曝，发白，'
+    + '人物移位，姿势改变，手势变化，肢体增加或减少，多腿多手臂，手指畸形，'
+    + '换脸，五官改变，服装款式改变，长裙变开叉，新增裸露，'
+    + '画面变形，裁切，扩图，物体凭空出现或消失，水印，文字，畸形结构，模糊，噪点';
+
+  // AI 一句话（无框）专用负面词：重点防止乱改人物姿势/服装/位置/背景
+  const AI_GLOBAL_NEGATIVE = '人物移位，姿势改变，手势变化，站姿改变，肢体增加或减少，'
+    + '多腿多手臂，手指畸形，腿部变形，换脸，五官重塑，陌生脸部，'
+    + '服装款式改变，裙子变开叉，新增裸露，穿着方式改变，'
+    + '背景物体凭空出现或消失，建筑变形，文字错乱，水印，'
+    + '构图变化，视角变化，裁切，扩图，画面变形，重影，畸形结构';
 
   const body = {
     model: ARK_CONFIG.model,
@@ -520,7 +580,11 @@ async function generateEdit(options) {
     watermark: ARK_CONFIG.watermark
   };
   if (imageRef) body.image = imageRef;
-  if (tplNegative) body.negative_prompt = tplNegative;
+  // 负面词选择：局部/AI带框 → LOCAL_EDIT_NEGATIVE；AI无框 → AI_GLOBAL_NEGATIVE；其他（快捷调节/首次精修）→ 模板负面词
+  let effectiveNegative = tplNegative;
+  if (isLocalEdit) effectiveNegative = LOCAL_EDIT_NEGATIVE;
+  else if (userInstruction) effectiveNegative = AI_GLOBAL_NEGATIVE;
+  if (effectiveNegative) body.negative_prompt = effectiveNegative;
 
   console.log('[ai-service] 调用 ARK，size:', ARK_CONFIG.size, 'prompt长度:', prompt.length,
     '图片:', imageRef ? (imageRef.startsWith('data:') ? 'base64(' + Math.round(imageRef.length / 1024) + 'KB)' : imageRef.substring(0, 80)) : '无');

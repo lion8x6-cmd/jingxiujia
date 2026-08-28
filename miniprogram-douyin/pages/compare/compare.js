@@ -1,8 +1,10 @@
-const platform = require('../../utils/platform.js');
 const storage = require('../../utils/storage');
 const aiService = require('../../utils/ai-service');
 const { TaskStatus } = require('../../utils/task-status');
 const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image');
+const { matchBrightness } = require('../../utils/brightness-match');
+const { renderPreview, applyFilters, hasEffect } = require('../../utils/filters');
+const platform = require('../../utils/platform.js');
 
 Page({
   data: {
@@ -37,6 +39,9 @@ Page({
     // 编辑面板展开状态
     editExpanded: false,
 
+    // 一句话改图：是否开启"指定修改区域"框选
+    aiUseRegion: false,
+
     // 局部编辑
     localRegions: [],      // [{id, x1,y1,x2,y2, prompt}] 归一化坐标 0-999
     activeRegionId: null,  // 当前选中的区域 id
@@ -57,6 +62,32 @@ Page({
 
     // AI 调节
     aiPrompt: '',
+
+    // 实时本地调节（纯本地 Canvas 处理）
+    filterDefs: [
+      { key: 'brightness', label: '亮度', min: -100, max: 100 },
+      { key: 'contrast', label: '对比度', min: -100, max: 100 },
+      { key: 'saturate', label: '饱和度', min: -100, max: 100 },
+      { key: 'temperature', label: '色温', sub: '冷↔暖', min: -100, max: 100 },
+      { key: 'highlights', label: '高光', min: -100, max: 100 },
+      { key: 'shadows', label: '阴影', min: -100, max: 100 },
+      { key: 'sharpen', label: '锐化', min: 0, max: 100 },
+      { key: 'vignette', label: '暗角', min: 0, max: 100 }
+    ],
+    activeFilter: 'brightness',  // 当前 chip 选中的调节项
+    activeFilterLabel: '亮度',
+    activeFilterSub: '',
+    activeFilterMin: -100,
+    activeFilterMax: 100,
+    activeFilterVal: 0,
+    filterChips: [],            // chip 渲染数据（JS 预算好选中/已调状态）
+    filterVals: {
+      brightness: 0, contrast: 0, saturate: 0,
+      temperature: 0, highlights: 0, shadows: 0,
+      sharpen: 0, vignette: 0
+    },
+    filterPreviewUrl: '',   // Canvas 实时预览小图 dataURL
+    hasFilter: false,       // 是否有非零调节
 
     generating: false,
     genProgress: 0,
@@ -120,6 +151,7 @@ Page({
     }, () => {
       this.syncSaveSelectAll();
       this.updateVersionState();
+      this.refreshFilterChips();
     });
   },
 
@@ -371,8 +403,12 @@ Page({
   // - 局部编辑模式：单指=框选/移动选区；双指=拖动图片+捏合缩放
   // - 其他模式：单指拖动放大图、左右滑动切换；双指捏合缩放
   isLocalEditActive() {
-    return this.data.editExpanded && this.data.adjustMode === 'local'
-      && !this.data.showOriginal && !this.data.generating;
+    if (!this.data.editExpanded || this.data.showOriginal || this.data.generating) return false;
+    // 局部编辑模式：单指=框选
+    if (this.data.adjustMode === 'local') return true;
+    // 一句话改图：开启"指定修改区域"后，单指也用于框选
+    if (this.data.adjustMode === 'ai' && this.data.aiUseRegion) return true;
+    return false;
   },
 
   onStageTouchStart(e) {
@@ -670,18 +706,69 @@ Page({
     });
   },
   collapsePanel() {
-    this.setData({ editExpanded: false, isDrawing: false, drawRect: null });
+    this.setData({
+      editExpanded: false, isDrawing: false, drawRect: null, aiUseRegion: false,
+      filterVals: this.defaultFilterVals(), activeFilterVal: 0,
+      filterPreviewUrl: '', hasFilter: false
+    });
+    this.refreshFilterChips();
     setTimeout(() => this.measureStage(), 320);
+  },
+
+  defaultFilterVals() {
+    return {
+      brightness: 0, contrast: 0, saturate: 0,
+      temperature: 0, highlights: 0, shadows: 0, sharpen: 0, vignette: 0
+    };
+  },
+
+  // 根据当前数值/选中项预算 chip 渲染数据（避免 WXML 里用动态下标表达式）
+  refreshFilterChips() {
+    const vals = this.data.filterVals || {};
+    const active = this.data.activeFilter;
+    const filterChips = this.data.filterDefs.map(d => ({
+      key: d.key,
+      label: d.label,
+      on: d.key === active,
+      adjusted: (vals[d.key] || 0) !== 0
+    }));
+    this.setData({ filterChips });
   },
 
   // ============ 模式切换 ============
   switchMode(e) {
     const mode = e.currentTarget.dataset.mode;
     if (mode === this.data.adjustMode || this.data.generating) return;
-    this.setData({ adjustMode: mode, isDrawing: false, drawRect: null }, () => {
+    // 离开实时调节模式时清掉未应用的滤镜预览
+    const leavingFilter = this.data.adjustMode === 'filter';
+    this.setData({
+      adjustMode: mode, isDrawing: false, drawRect: null, aiUseRegion: false,
+      filterVals: leavingFilter ? this.defaultFilterVals() : this.data.filterVals,
+      activeFilterVal: leavingFilter ? 0 : this.data.activeFilterVal,
+      filterPreviewUrl: leavingFilter ? '' : this.data.filterPreviewUrl,
+      hasFilter: leavingFilter ? false : this.data.hasFilter
+    }, () => {
       this.recomputeCanSubmit();
       this.measureStage();
+      if (leavingFilter) this.refreshFilterChips();
     });
+  },
+
+  // ============ 一句话改图：指定区域开关 ============
+  toggleAiRegion() {
+    if (this.data.generating) return;
+    const next = !this.data.aiUseRegion;
+    this.setData({ aiUseRegion: next });
+    // 关闭框选时清掉已画的 AI 框，避免无框提交却带残留坐标
+    if (!next && this.data.localRegions.length) {
+      this.setData({ localRegions: [], activeRegionId: null, drawRect: null, isDrawing: false });
+    }
+    setTimeout(() => this.measureStage(), 320);
+  },
+
+  clearAiRegions() {
+    this.setData({ localRegions: [], activeRegionId: null, drawRect: null, isDrawing: false });
+    this.recomputeCanSubmit();
   },
 
   // ============ 局部编辑：坐标换算 ============
@@ -965,6 +1052,82 @@ Page({
     this.setData({ aiPrompt: cur ? `${cur}，${text}` : text }, () => this.recomputeCanSubmit());
   },
 
+  // ============ 实时本地调节（亮度/对比度/饱和度/色温/高光/阴影/锐化/暗角）============
+  onSelectFilter(e) {
+    const key = e.currentTarget.dataset.key;
+    if (key === this.data.activeFilter) return;
+    const def = this.data.filterDefs.find(d => d.key === key);
+    if (!def) return;
+    this.setData({
+      activeFilter: key,
+      activeFilterLabel: def.label,
+      activeFilterSub: def.sub || '',
+      activeFilterMin: def.min,
+      activeFilterMax: def.max,
+      activeFilterVal: this.data.filterVals[key] || 0
+    });
+    this.refreshFilterChips();
+  },
+  onFilterChanging(e) {
+    const key = this.data.activeFilter;
+    const val = e.detail.value;
+    const vals = Object.assign({}, this.data.filterVals, { [key]: val });
+    this.updateFilterPreview(vals);
+  },
+  onFilterChange(e) {
+    const key = this.data.activeFilter;
+    const val = e.detail.value;
+    const vals = Object.assign({}, this.data.filterVals, { [key]: val });
+    this.updateFilterPreview(vals, true);
+  },
+  updateFilterPreview(vals, immediate) {
+    const has = hasEffect(vals);
+    const active = this.data.activeFilter;
+    const filterChips = this.data.filterDefs.map(d => ({
+      key: d.key,
+      label: d.label,
+      on: d.key === active,
+      adjusted: (vals[d.key] || 0) !== 0
+    }));
+    this.setData({
+      filterVals: vals,
+      hasFilter: has,
+      activeFilterVal: vals[active] || 0,
+      filterChips
+    });
+    this.recomputeCanSubmit();
+    if (!has) {
+      if (this.data.filterPreviewUrl) this.setData({ filterPreviewUrl: '' });
+      return;
+    }
+    // 节流渲染（拖动时高频触发，取最后一次）
+    this._filterValsPending = vals;
+    if (this._filterTimer) return;
+    const delay = immediate ? 0 : 90;
+    this._filterTimer = setTimeout(() => {
+      this._filterTimer = null;
+      const pending = this._filterValsPending;
+      const src = this.data.displayUrl || (this.data.currentItem && this.data.currentItem.originalUrl);
+      if (!src || src.indexOf('http') === 0) return;
+      renderPreview(src, pending, 280).then(url => {
+        if (url && this.data.hasFilter) this.setData({ filterPreviewUrl: url });
+      });
+    }, delay);
+  },
+  resetFilter() {
+    const vals = this.defaultFilterVals();
+    this.setData({
+      filterVals: vals,
+      activeFilterVal: 0,
+      filterPreviewUrl: '',
+      hasFilter: false
+    }, () => {
+      this.recomputeCanSubmit();
+      this.refreshFilterChips();
+    });
+    platform.showToast({ title: '已全部重置', icon: 'none' });
+  },
+
   recomputeCanSubmit() {
     let can = false;
     if (this.data.adjustMode === 'ai') {
@@ -972,6 +1135,8 @@ Page({
     } else if (this.data.adjustMode === 'local') {
       can = this.data.localRegions.length > 0
         && this.data.localRegions.some(r => (r.prompt || '').trim());
+    } else if (this.data.adjustMode === 'filter') {
+      can = this.data.hasFilter;
     } else {
       can = this.data.hasAdjustments;
     }
@@ -1023,6 +1188,11 @@ Page({
     const item = this.data.currentItem;
     if (!item) return;
 
+    // 实时调节模式：纯本地 Canvas 处理，不走 AI
+    if (mode === 'filter') {
+      return this.submitFilterAdjust(item);
+    }
+
     const aiText = (this.data.aiPrompt || '').trim();
     let localPrompt = '';
     if (mode === 'local') {
@@ -1030,9 +1200,15 @@ Page({
       if (!valid.length) {
         platform.showToast({ title: '请为选区输入修改指令', icon: 'none' }); return;
       }
-      localPrompt = valid.map(r =>
-        `<bbox>${r.x1} ${r.y1} ${r.x2} ${r.y2}</bbox> ${r.prompt.trim()}`
-      ).join('\n');
+      // Seedream 5.0 Pro 交互编辑要求使用完整句式标注 bbox，
+      // 并显式声明"区域外保持不变"，否则模型会把 bbox 当普通文字、对整张图重新生成。
+      const regionLines = valid.map(r =>
+        `<bbox>${r.x1} ${r.y1} ${r.x2} ${r.y2}</bbox>区域：${r.prompt.trim()}`
+      ).join('；');
+      localPrompt = `请对图片进行以下局部修改：${regionLines}。`
+        + `注意：仅修改上述 bbox 标注区域内的像素内容，bbox 以外区域必须逐像素保持与原图完全一致，不得做任何全局调整。`
+        + `严格禁止：改变画面整体亮度、曝光、对比度、白平衡、色阶、饱和度、伽马值、色温；禁止重新打光、补光、添加闪光灯效果；禁止改变背景色调和光影方向。`
+        + `输出图片的曝光参数、色彩分布、明暗直方图必须与参考图一致，仅 bbox 内部允许变化。`;
     }
     if (mode === 'quick' && !this.data.hasAdjustments) {
       platform.showToast({ title: '请先调节部位', icon: 'none' }); return;
@@ -1053,6 +1229,13 @@ Page({
     this.startProgressAnim();
 
     try {
+      // AI 模式带框：收集有效框选区域（AI 模式下所有框共用一句话，框本身不需要 prompt）
+      const aiRegionList = (mode === 'ai' && this.data.aiUseRegion)
+        ? this.data.localRegions
+            .filter(r => r.x2 > r.x1 && r.y2 > r.y1)
+            .map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }))
+        : [];
+
       const result = await aiService.generateEdit({
         imagePath: refPath,
         imageUrl: refUrl,
@@ -1060,7 +1243,8 @@ Page({
         customPrompt: mode === 'ai' ? aiText : (mode === 'local' ? localPrompt : ''),
         basePrompt: item.prompt || '',
         negativePrompt: item.negativePrompt || '',
-        templateId: item.templateId
+        templateId: item.templateId,
+        aiRegions: aiRegionList
       });
 
       this.stopProgressAnim();
@@ -1069,7 +1253,33 @@ Page({
       // 小延迟让用户看到 100%
       await new Promise(r => setTimeout(r, 300));
 
-      const newUrl = result.url;
+      let newUrl = result.url;
+
+      // 区域类编辑（局部编辑 / 一句话带框）都会让 bbox 外亮度漂移，
+      // 用 Canvas 将结果图【框外区域】亮度对齐到参考图，消除全局变亮。
+      const isRegionEdit = mode === 'local' || (mode === 'ai' && aiRegionList.length > 0);
+      if (isRegionEdit) {
+        const refForMatch = refPath || refUrl;
+        // 本次提交的框选区域（归一化 0-999），校正时排除框内像素
+        const editRegions = mode === 'local'
+          ? this.data.localRegions
+              .filter(r => (r.prompt || '').trim())
+              .map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }))
+          : aiRegionList;
+        if (refForMatch && newUrl && newUrl.indexOf('data:') !== 0 && newUrl.indexOf('http') !== 0) {
+          try {
+            platform.showLoading({ title: '校正亮度...', mask: true });
+            newUrl = await matchBrightness(newUrl, refForMatch, {
+              threshold: 2,
+              regions: editRegions
+            });
+            platform.hideLoading();
+          } catch (e) {
+            platform.hideLoading();
+            console.warn('[compare] 亮度校正失败，使用原图:', e);
+          }
+        }
+      }
       const history = Array.isArray(item.history) ? item.history.slice() : [];
       if (item.resultUrl) {
         history.push({
@@ -1121,12 +1331,92 @@ Page({
     }
   },
 
+  // ============ 实时调节：本地 Canvas 处理并落版 ============
+  async submitFilterAdjust(item) {
+    if (!this.data.hasFilter) {
+      platform.showToast({ title: '请先调节参数', icon: 'none' }); return;
+    }
+    // 基于当前展示的图（最新精修结果，无则原图）处理
+    const srcPath = this.data.displayUrl || item.originalUrl;
+    if (!srcPath || srcPath.indexOf('http') === 0) {
+      platform.showToast({ title: '当前图片无法本地处理', icon: 'none' }); return;
+    }
+
+    const filterVals = this.data.filterVals;
+    // 记录可读描述
+    const filterNames = {
+      brightness: '亮度', contrast: '对比度', saturate: '饱和度',
+      temperature: '色温', highlights: '高光', shadows: '阴影',
+      sharpen: '锐化', vignette: '暗角'
+    };
+    const labels = [];
+    ['brightness', 'contrast', 'saturate', 'temperature', 'highlights', 'shadows', 'sharpen', 'vignette'].forEach(k => {
+      const v = filterVals[k] || 0;
+      if (Math.abs(v) > 0.5) labels.push(filterNames[k] + (v > 0 ? '+' : '') + v);
+    });
+    const filterDesc = '本地调节（' + labels.join('，') + '）';
+
+    this.setData({ generating: true, genProgress: 50, genProgressText: '50.00' });
+    platform.showLoading({ title: '处理中...', mask: true });
+
+    try {
+      let newUrl = await applyFilters(srcPath, filterVals);
+      platform.hideLoading();
+      if (!newUrl || newUrl === srcPath) {
+        this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });
+        platform.showToast({ title: '处理失败，请重试', icon: 'none' });
+        return;
+      }
+
+      this.setData({ genProgress: 100, genProgressText: '100.00' });
+      await new Promise(r => setTimeout(r, 200));
+
+      const history = Array.isArray(item.history) ? item.history.slice() : [];
+      if (item.resultUrl) {
+        history.push({ url: item.resultUrl, at: Date.now(), prompt: item.lastPrompt || item.prompt || '' });
+      }
+
+      const updatedItem = {
+        ...item,
+        resultUrl: newUrl,
+        status: TaskStatus.COMPLETED,
+        history,
+        lastPrompt: filterDesc
+      };
+      storage.updateRecord(item.id, updatedItem);
+      const batchItems = this.data.batchItems.map(b => b.id === item.id ? updatedItem : b);
+      const versions = this.buildVersions(updatedItem);
+
+      this.setData({
+        generating: false,
+        versions,
+        versionIdx: versions.length - 1,
+        currentItem: updatedItem,
+        batchItems,
+        // 落版后清空预览滤镜（效果已烘焙进结果图）
+        filterVals: this.defaultFilterVals(),
+        activeFilterVal: 0,
+        filterPreviewUrl: '',
+        hasFilter: false
+      }, () => {
+        this.updateVersionState();
+        this.recomputeCanSubmit();
+        this.refreshFilterChips();
+      });
+      platform.showToast({ title: '已应用', icon: 'success' });
+    } catch (e) {
+      platform.hideLoading();
+      console.error('[compare] 本地调节失败:', e);
+      this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });
+      platform.showToast({ title: '处理失败，请重试', icon: 'none' });
+    }
+  },
+
   // ============ 保存弹窗 ============
   onSaveBtnTap() {
     if (this.data.generating) return;
     const item = this.data.currentItem;
-    const selectedSaveIds = item ? [item.id] : [];
-    const selectedSaveMap = {};
+    const selectedSaveIds = item ? [item.id] : [];    const selectedSaveMap = {};
     selectedSaveIds.forEach(id => { selectedSaveMap[id] = true; });
     this.setData({ showSaveSheet: true, selectedSaveIds, selectedSaveMap },
       () => this.syncSaveSelectAll());

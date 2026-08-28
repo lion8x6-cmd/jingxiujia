@@ -6,5 +6,10 @@
       <text class="start-btn-text">选图开始修</text>
       <text class="start-btn-arrow">››</text>
     </button>
+    <view class="custom-entry" bindtap="onCustomTap" hover-class="custom-entry-hover" hover-stay-time="80">
+      <text class="custom-entry-icon">✎</text>
+      <text class="custom-entry-text">个性化修图</text>
+      <text class="custom-entry-sub">先选图，再自己编辑调整</text>
+    </view>
   </view>
 </view>

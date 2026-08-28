@@ -27,9 +27,10 @@ page {
   z-index: 10;
   background: #fff;
   border-radius: 48rpx 48rpx 0 0;
-  padding: 56rpx 12rpx 56rpx;
+  padding: 44rpx 40rpx 48rpx;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: center;
   box-sizing: border-box;
 }
@@ -39,17 +40,17 @@ page {
   align-items: center;
   justify-content: center;
   width: 100% !important;
-  height: 108rpx;
+  height: 100rpx;
   min-width: 0 !important;
   max-width: none !important;
-  border-radius: 54rpx;
+  border-radius: 50rpx;
   background: linear-gradient(180deg, #0DD66F 0%, #07C160 50%, #06A852 100%);
   box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.4);
   border: none;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
-  line-height: 108rpx;
+  line-height: 100rpx;
   transition: transform 0.12s ease;
 }
 .start-btn::after { border: none; }
@@ -60,7 +61,7 @@ page {
 }
 
 .start-btn-text {
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 600;
   color: #FFFFFF;
   letter-spacing: 8rpx;
@@ -68,9 +69,46 @@ page {
 }
 
 .start-btn-arrow {
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 600;
   color: #FFFFFF;
   margin-left: 20rpx;
+  line-height: 1;
+}
+
+/* 个性化修图入口 */
+.custom-entry {
+  margin-top: 24rpx;
+  height: 96rpx;
+  border-radius: 48rpx;
+  border: 2rpx solid #07C160;
+  background: rgba(7, 193, 96, 0.06);
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+  box-sizing: border-box;
+  transition: transform 0.12s ease;
+}
+.custom-entry-hover {
+  transform: scale(0.97);
+  background: rgba(7, 193, 96, 0.12);
+}
+.custom-entry-icon {
+  font-size: 34rpx;
+  color: #07C160;
+  margin-right: 12rpx;
+  line-height: 1;
+}
+.custom-entry-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #07C160;
+  letter-spacing: 2rpx;
+  line-height: 1;
+}
+.custom-entry-sub {
+  margin-left: auto;
+  font-size: 22rpx;
+  color: #9aa0a6;
   line-height: 1;
 }

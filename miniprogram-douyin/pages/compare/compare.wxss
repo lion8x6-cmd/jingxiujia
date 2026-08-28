@@ -495,6 +495,54 @@
   padding: 20rpx 24rpx 16rpx;
   box-sizing: border-box;
 }
+
+/* 一句话改图：指定区域开关 */
+.ai-region-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  background: #f0faf4;
+  border-radius: 14rpx;
+  margin-bottom: 14rpx;
+}
+.ai-region-toggle-left {
+  display: flex;
+  align-items: center;
+}
+.ai-region-toggle-icon {
+  font-size: 34rpx;
+  margin-right: 14rpx;
+}
+.ai-region-toggle-text {
+  display: flex;
+  flex-direction: column;
+}
+.ai-region-toggle-title {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.ai-region-toggle-desc {
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 4rpx;
+  line-height: 1.3;
+}
+.ai-region-hint {
+  font-size: 22rpx;
+  color: #FE2C55;
+  background: #f0faf4;
+  border-radius: 10rpx;
+  padding: 12rpx 16rpx;
+  margin-bottom: 14rpx;
+  line-height: 1.5;
+}
+.ai-region-clear {
+  color: #e24b4a;
+  margin-left: 8rpx;
+}
 .ai-tip {
   font-size: 22rpx;
   color: #999;
@@ -525,6 +573,120 @@
   background: #E1F5EE;
   padding: 8rpx 20rpx;
   border-radius: 24rpx;
+}
+
+/* ===== 实时调节面板 ===== */
+.filter-panel {
+  background: #fff;
+  padding: 20rpx 24rpx 16rpx;
+  box-sizing: border-box;
+}
+.filter-tip {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+  line-height: 1.5;
+}
+
+/* 调节项 chip 横滑栏 */
+.filter-chips {
+  white-space: nowrap;
+  height: 64rpx;
+  line-height: 64rpx;
+  margin: 0 -24rpx;
+  padding: 2rpx 24rpx 6rpx;
+  box-sizing: content-box;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  height: 56rpx;
+  padding: 0 26rpx;
+  margin-right: 14rpx;
+  border-radius: 28rpx;
+  background: #f4f5f7;
+  border: 2rpx solid transparent;
+  vertical-align: middle;
+}
+.filter-chip.on {
+  background: rgba(7, 193, 96, 0.1);
+  border-color: #FE2C55;
+}
+.chip-label {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1;
+}
+.filter-chip.on .chip-label {
+  color: #FE2C55;
+  font-weight: 600;
+}
+/* 已调节项绿点 */
+.chip-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #FE2C55;
+  margin-right: 10rpx;
+  opacity: 0;
+}
+.chip-dot.show {
+  opacity: 1;
+}
+
+.filter-row {
+  margin-top: 14rpx;
+}
+.filter-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.filter-name {
+  font-size: 26rpx;
+  color: #333;
+}
+.filter-sub {
+  font-size: 20rpx;
+  color: #bbb;
+}
+.filter-val {
+  font-size: 24rpx;
+  color: #999;
+  min-width: 70rpx;
+  text-align: right;
+}
+.filter-val.pos { color: #FE2C55; }
+.filter-val.neg { color: #e24b4a; }
+.filter-slider {
+  margin: 0;
+}
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6rpx;
+}
+.filter-reset {
+  font-size: 24rpx;
+  color: #666;
+  background: #f3f3f3;
+  padding: 10rpx 32rpx;
+  border-radius: 24rpx;
+}
+.filter-reset.disabled {
+  color: #bbb;
+}
+
+/* 实时调节预览叠加层：盖在 stage-img 上，和 aspectFit 对齐 */
+.filter-preview-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
 }
 
 /* 展开态底部按钮行 */

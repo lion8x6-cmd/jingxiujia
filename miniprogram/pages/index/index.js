@@ -33,6 +33,11 @@ Page({
       });
   },
 
+  // 个性化修图：进入编辑页（空状态，先在页内上传图片再手动编辑）
+  onCustomTap() {
+    wx.navigateTo({ url: '/pages/compare/compare?blank=1' });
+  },
+
   async submitImages(paths) {
     if (!app.globalData.isOnline) {
       wx.showModal({

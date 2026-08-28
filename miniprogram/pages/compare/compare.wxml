@@ -6,10 +6,27 @@
         catchtouchmove="onStageTouchMove"
         bindtouchcancel="onStageTouchCancel"
         bindlongpress="onStageLongPress">
-    <image class="stage-img {{imgAnim ? 'anim' : ''}}" style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});" src="{{showOriginal ? currentItem.originalUrl : displayUrl}}" mode="aspectFit" bindload="onImgLoad"></image>
 
-    <!-- 局部编辑选区层 -->
-    <view class="region-layer" wx:if="{{editExpanded && adjustMode === 'local' && !showOriginal && !generating}}">
+    <!-- 个性化修图空状态：提示上传图片 -->
+    <view class="blank-upload" wx:if="{{isBlank}}" bindtap="onBlankPick">
+      <view class="blank-upload-card">
+        <view class="blank-upload-icon">＋</view>
+        <view class="blank-upload-title">上传要精修的图片</view>
+        <view class="blank-upload-sub">支持从相册选择或拍照，上传后可自由编辑</view>
+        <view class="blank-upload-btn">选择图片</view>
+      </view>
+    </view>
+
+    <image wx:if="{{!isBlank}}" class="stage-img {{imgAnim ? 'anim' : ''}}" style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});" src="{{showOriginal ? currentItem.originalUrl : displayUrl}}" mode="aspectFit" bindload="onImgLoad"></image>
+
+    <!-- 实时调节预览叠加层（Canvas 渲染的小图，所见即所得） -->
+    <image wx:if="{{filterPreviewUrl && !showOriginal && editExpanded && adjustMode === 'filter'}}"
+           class="filter-preview-img"
+           style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});"
+           src="{{filterPreviewUrl}}" mode="aspectFit"></image>
+
+    <!-- 局部编辑选区层（局部编辑模式 / 一句话改图开启指定区域时显示） -->
+    <view class="region-layer" wx:if="{{editExpanded && !showOriginal && !generating && (adjustMode === 'local' || (adjustMode === 'ai' && aiUseRegion))}}">
       <!-- 空状态指引 -->
       <block wx:if="{{localRegions.length === 0 && !isDrawing}}">
         <view class="local-guide">
@@ -37,10 +54,10 @@
     </view>
 
     <!-- 左上角：当前版本标签 -->
-    <view class="version-label">{{showOriginal ? '原图（预览）' : versionLabel}}</view>
+    <view class="version-label" wx:if="{{!isBlank}}">{{showOriginal ? '原图（预览）' : versionLabel}}</view>
 
     <!-- 右上角按钮组：查看原图（点按切换/长按预览）/ 删除 -->
-    <view class="stage-top-actions" wx:if="{{!generating}}">
+    <view class="stage-top-actions" wx:if="{{!generating && !isBlank}}">
       <view class="origin-toggle {{showOriginal ? 'active' : ''}}"
             catchtap="toggleOriginal"
             catchlongpress="onBtnLongPress"
@@ -55,15 +72,15 @@
     </view>
 
     <!-- 左右切换批次图片箭头 -->
-    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && adjustMode === 'local')}}" catchtap="goPrev">
+    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && (adjustMode === 'local' || (adjustMode === 'ai' && aiUseRegion)))}}" catchtap="goPrev">
       <text>‹</text>
     </view>
-    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && adjustMode === 'local')}}" catchtap="goNext">
+    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && (adjustMode === 'local' || (adjustMode === 'ai' && aiUseRegion)))}}" catchtap="goNext">
       <text>›</text>
     </view>
 
     <!-- 底部版本控制栏 -->
-    <view class="version-bar" wx:if="{{!generating}}">
+    <view class="version-bar" wx:if="{{!generating && !isBlank}}">
       <view class="ver-nav {{!canGoBack ? 'disabled' : ''}}" catchtap="goVersionBack">
         <text class="ver-nav-ico">‹</text>
       </view>
@@ -98,14 +115,22 @@
 
   <!-- 收起态：编辑图片 + 保存 同一行 -->
   <view class="collapsed-bar" wx:if="{{!editExpanded}}">
-    <button class="btn-edit-expand" bindtap="expandPanel">
-      <text class="edit-ico">✎</text>
-      <text>编辑图片</text>
-    </button>
-    <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
-      <text class="save-inline-ico">↓</text>
-      <text class="save-inline-txt">保存</text>
-    </view>
+    <block wx:if="{{isBlank}}">
+      <button class="btn-blank-pick" bindtap="onBlankPick">
+        <text class="blank-pick-ico">＋</text>
+        <text>选择图片开始编辑</text>
+      </button>
+    </block>
+    <block wx:else>
+      <button class="btn-edit-expand" bindtap="expandPanel">
+        <text class="edit-ico">✎</text>
+        <text>编辑图片</text>
+      </button>
+      <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
+        <text class="save-inline-ico">↓</text>
+        <text class="save-inline-txt">保存</text>
+      </view>
+    </block>
   </view>
 
   <!-- 展开态：编辑面板 -->
@@ -114,7 +139,8 @@
     <view class="mode-tabs">
       <view class="mode-tab {{adjustMode === 'local' ? 'on' : ''}}" bindtap="switchMode" data-mode="local">局部编辑</view>
       <view class="mode-tab {{adjustMode === 'quick' ? 'on' : ''}}" bindtap="switchMode" data-mode="quick">快捷调节</view>
-      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">一句话改图</view>
+      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">一句话</view>
+      <view class="mode-tab {{adjustMode === 'filter' ? 'on' : ''}}" bindtap="switchMode" data-mode="filter">实时调节</view>
     </view>
 
     <!-- 局部编辑面板 -->
@@ -171,6 +197,22 @@
 
     <!-- 一句话改图面板 -->
     <view class="ai-panel" hidden="{{adjustMode !== 'ai'}}">
+      <!-- 指定区域开关 -->
+      <view class="ai-region-toggle" bindtap="toggleAiRegion">
+        <view class="ai-region-toggle-left">
+          <text class="ai-region-toggle-icon">🎯</text>
+          <view class="ai-region-toggle-text">
+            <text class="ai-region-toggle-title">指定修改区域</text>
+            <text class="ai-region-toggle-desc">改具体部位/物体时开启，在图上框选更精准</text>
+          </view>
+        </view>
+        <switch checked="{{aiUseRegion}}" color="#07c160" catchtap="toggleAiRegion"/>
+      </view>
+      <view class="ai-region-hint" wx:if="{{aiUseRegion}}">
+        <text wx:if="{{localRegions.length === 0}}">已开启：在图片上拖动手指，框出要修改的区域（如手臂、天空），可画多个框</text>
+        <text wx:else>已框选 {{localRegions.length}} 个区域，指令只作用于框内；<text class="ai-region-clear" catchtap="clearAiRegions">清空</text></text>
+      </view>
+
       <view class="ai-tip">告诉 AI 你想怎么改，例如："皮肤再白皙一点，背景虚化一些"</view>
       <textarea class="ai-input"
                 placeholder="用一句话描述你想要的效果..."
@@ -189,12 +231,43 @@
       </view>
     </view>
 
+    <!-- 实时调节面板（本地处理，拖动即预览，不耗 AI） -->
+    <view class="filter-panel" hidden="{{adjustMode !== 'filter'}}">
+      <view class="filter-tip">拖动滑块即时预览，效果本地处理、不消耗 AI 次数</view>
+
+      <!-- 调节项 chip 横滑栏（绿点表示该项已调节） -->
+      <scroll-view scroll-x class="filter-chips" enhanced show-scrollbar="{{false}}">
+        <view class="filter-chip {{item.on ? 'on' : ''}}"
+              wx:for="{{filterChips}}" wx:key="key"
+              bindtap="onSelectFilter" data-key="{{item.key}}">
+          <view class="chip-dot {{item.adjusted ? 'show' : ''}}"></view>
+          <text class="chip-label">{{item.label}}</text>
+        </view>
+      </scroll-view>
+
+      <!-- 当前选中项的单个滑块 -->
+      <view class="filter-row">
+        <view class="filter-row-head">
+          <text class="filter-name">{{activeFilterLabel}}<text class="filter-sub" wx:if="{{activeFilterSub}}"> {{activeFilterSub}}</text></text>
+          <text class="filter-val {{activeFilterVal > 0 ? 'pos' : activeFilterVal < 0 ? 'neg' : ''}}">{{activeFilterVal > 0 ? '+' : ''}}{{activeFilterVal}}</text>
+        </view>
+        <slider class="filter-slider" min="{{activeFilterMin}}" max="{{activeFilterMax}}" value="{{activeFilterVal}}"
+                activeColor="#07c160" backgroundColor="#e5e5e5" block-size="22"
+                bindchanging="onFilterChanging" bindchange="onFilterChange"/>
+      </view>
+
+      <view class="filter-actions">
+        <view class="filter-reset {{hasFilter ? '' : 'disabled'}}" bindtap="resetFilter">重置全部</view>
+      </view>
+    </view>
+
     <!-- 底部按钮：收起 + 提交 + 保存 -->
     <view class="edit-btn-row">
       <view class="btn-collapse" bindtap="collapsePanel">收起</view>
       <button class="btn-submit {{!canSubmit || generating ? 'disabled' : ''}}" bindtap="submitAdjust" disabled="{{!canSubmit || generating}}">
-        <text wx:if="{{!generating}}">提交修改并生成</text>
-        <text wx:else>生成中 {{genProgressText}}%</text>
+        <text wx:if="{{adjustMode === 'filter' && !generating}}">应用调节</text>
+        <text wx:elif="{{!generating}}">提交修改并生成</text>
+        <text wx:else>处理中 {{genProgressText}}%</text>
       </button>
       <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
         <text class="save-inline-ico">↓</text>
