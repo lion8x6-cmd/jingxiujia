@@ -29,5 +29,11 @@ Page({
     platform.navigateTo({
       url: '/pages/lab/runner?skillId=' + id
     });
+  },
+
+  goPromptTester() {
+    platform.navigateTo({
+      url: '/pages/lab/prompt-tester'
+    });
   }
 });

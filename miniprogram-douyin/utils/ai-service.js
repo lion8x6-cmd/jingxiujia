@@ -1,8 +1,8 @@
+const platform = require('./platform.js');
 // AI服务 - 豆包 Doubao-Seedream-5.0-pro
 const app = getApp();
 const { TaskStatus, RETRY_CONFIG } = require('./task-status');
 const { ARK_CONFIG, PART_PROMPT_MAP, BASE_RETOUCH_PROMPT } = require('./ark-config');
-const platform = require('./platform.js');
 
 // 自有后端相关流程（上传/提交任务/轮询）默认走 mock，待后端就绪后切换为 false
 const USE_MOCK = true;
@@ -183,15 +183,16 @@ function buildAdjustPrompt(adjustments, basePrompt) {
 
 // AI 一句话（无框）提示词包装器：只执行用户指令，强约束锁定未提及内容。
 // 二次编辑绝不能带 t2 全图精修词，否则模型会重绘姿势/服装/光影/背景。
+// 原则：正向词只描述"做什么、保留什么"；所有"禁止/不得"项统一放负面词，
+// 避免正向词里出现负面概念被模型反向锚定。
 function buildAiGlobalPrompt(instruction) {
   return '请严格按以下要求编辑图片：【' + instruction + '】。\n'
     + '必须遵守：\n'
-    + '1. 只修改上述要求明确涉及的内容，要求中未提及的一切必须与原图完全保持一致；\n'
-    + '2. 人物的长相、五官、表情、姿势、手势、站位、在画面中的位置、身材比例、肢体和手指数量一律不变；\n'
-    + '3. 服装的款式、颜色、穿着方式、遮挡关系一律不变（长裙不得变成开叉裙，不得新增裸露皮肤）；\n'
-    + '4. 若要求针对背景（如更换天空），只替换该背景区域，人物和前景逐像素保持不变，边缘自然融合；\n'
-    + '5. 构图、视角、画面尺寸、整体曝光、色调和光影方向保持不变，不裁切、不扩图、不移位；\n'
-    + '6. 禁止改变人物姿势，禁止移动人物位置，禁止增减肢体或手指。';
+    + '1. 只修改上述要求明确涉及的内容，做到要求即可，修改幅度自然克制，不做额外美化、不顺手美颜或瘦身；要求中未提及的一切必须与原图完全保持一致；\n'
+    + '2. 人物的长相、五官、表情、姿势、手势、站位、在画面中的位置、身材比例、肢体和手指数量保持与原图一致；\n'
+    + '3. 服装的款式、颜色、穿着方式与遮挡关系保持与原图一致；\n'
+    + '4. 若要求针对背景（如更换天空），只替换该背景区域，人物和前景保持不变，边缘自然融合；\n'
+    + '5. 构图、视角、画面尺寸、整体曝光、色调和光影方向保持与原图一致，不裁切、不扩图、不移位，画面整体明暗和色彩与原图协调统一。';
 }
 
 // AI 带框（bbox 锚点）提示词构建器：框出目标区域，同一句话只作用于框内，框外锁定。
@@ -201,11 +202,11 @@ function buildAiRegionPrompt(instruction, regions) {
   ).join('；\n');
   return '请对图片以下指定区域进行修改：\n' + regionLines + '。\n'
     + '必须遵守：\n'
-    + '1. 仅修改上述 bbox 标注区域内的内容，bbox 以外所有像素（包括人物其余部分、背景、服装、前景）必须与原图完全保持一致，不得做任何改动；\n'
-    + '2. 人物的姿势、手势、站位、位置、表情、长相不变，肢体和手指数量不变；\n'
-    + '3. 服装款式、颜色、穿着方式、遮挡关系不变（长裙不得变开叉，不得新增裸露）；\n'
-    + '4. 若修改的是背景区域（如天空），人物和前景逐像素保持不变，交界边缘自然融合；\n'
-    + '5. 构图、视角、尺寸、曝光、色调、光影方向保持不变，不裁切、不扩图。';
+    + '1. 仅修改上述 bbox 标注区域内的内容，做到要求即可、修改幅度自然克制，不做额外美化；bbox 以外所有像素（包括人物其余部分、背景、服装、前景）必须与原图完全保持一致；\n'
+    + '2. 区域内人物的长相、五官、表情保持与原图一致，姿势、手势、站位、位置和肢体手指数量不变；\n'
+    + '3. 服装款式、颜色、穿着方式与遮挡关系保持与原图一致；\n'
+    + '4. 若修改的是背景区域（如天空），人物和前景保持不变，交界边缘自然融合；\n'
+    + '5. 构图、视角、尺寸、曝光、色调、光影方向以及画面整体明暗与原图保持一致，不裁切、不扩图，框外不做任何亮度或色彩调整。';
 }
 
 // 压缩图片到合理大小，避免 base64 体积过大导致请求失败
@@ -478,6 +479,8 @@ async function generateEdit(options) {
     negativePrompt = '',
     templateId,
     aiRegions = null,   // AI 模式下用户框选的区域 [{x1,y1,x2,y2}]（0-999），有值时指令只作用于框内
+    rawPrompt = '',     // 固定专业提示词（如老照片修复）：传入则直接使用，不套模板/包装器
+    rawNegative = '',   // 配套固定负面词
     signal   // 取消令牌
   } = options;
 
@@ -542,7 +545,12 @@ async function generateEdit(options) {
   // 导致局部修改后画面整体亮度漂移。局部模式改用专用的极简负面词，只禁止结构性破坏。
   const isLocalEdit = userInstruction.indexOf('<bbox>') !== -1;
 
-  if (userInstruction) {
+  // 固定专业提示词（老照片修复等一键工具）：直接使用，不套模板、不套包装器
+  const isRawPrompt = !!(rawPrompt || '').trim();
+
+  if (isRawPrompt) {
+    prompt = rawPrompt.trim();
+  } else if (userInstruction) {
     if (isLocalEdit) {
       // 局部编辑 / AI带框：compare 侧已拼好 bbox 坐标 + 区域外锁定约束，直接使用
       prompt = userInstruction;
@@ -564,11 +572,13 @@ async function generateEdit(options) {
     + '换脸，五官改变，服装款式改变，长裙变开叉，新增裸露，'
     + '画面变形，裁切，扩图，物体凭空出现或消失，水印，文字，畸形结构，模糊，噪点';
 
-  // AI 一句话（无框）专用负面词：重点防止乱改人物姿势/服装/位置/背景
+  // AI 一句话（无框）专用负面词：重点防止乱改人物姿势/服装/位置/背景 + 全局亮度色偏漂移
   const AI_GLOBAL_NEGATIVE = '人物移位，姿势改变，手势变化，站姿改变，肢体增加或减少，'
     + '多腿多手臂，手指畸形，腿部变形，换脸，五官重塑，陌生脸部，'
-    + '服装款式改变，裙子变开叉，新增裸露，穿着方式改变，'
+    + '服装款式改变，裙子变开叉，长裙变开叉，新增裸露，穿着方式改变，'
     + '背景物体凭空出现或消失，建筑变形，文字错乱，水印，'
+    + '全局提亮，整体变亮，曝光增加，补光，闪光灯效果，改变亮度，改变对比度，'
+    + '改变白平衡，改变色温，改变饱和度，色偏，过曝，发白，脸部过亮，光影割裂，'
     + '构图变化，视角变化，裁切，扩图，画面变形，重影，畸形结构';
 
   const body = {
@@ -580,9 +590,10 @@ async function generateEdit(options) {
     watermark: ARK_CONFIG.watermark
   };
   if (imageRef) body.image = imageRef;
-  // 负面词选择：局部/AI带框 → LOCAL_EDIT_NEGATIVE；AI无框 → AI_GLOBAL_NEGATIVE；其他（快捷调节/首次精修）→ 模板负面词
+  // 负面词选择：固定工具(rawPrompt) → rawNegative；局部/AI带框 → LOCAL；AI无框 → AI_GLOBAL；其他 → 模板负面词
   let effectiveNegative = tplNegative;
-  if (isLocalEdit) effectiveNegative = LOCAL_EDIT_NEGATIVE;
+  if (isRawPrompt) effectiveNegative = rawNegative;
+  else if (isLocalEdit) effectiveNegative = LOCAL_EDIT_NEGATIVE;
   else if (userInstruction) effectiveNegative = AI_GLOBAL_NEGATIVE;
   if (effectiveNegative) body.negative_prompt = effectiveNegative;
 
@@ -602,6 +613,138 @@ async function generateEdit(options) {
   }
 }
 
+// ============ 参考图风格迁移（Seedream 多图生图）============
+
+// 可借鉴的风格特征：key → 用户可见标签 + 迁移提示词
+// 设计原则：每一项都是"参考图里客观存在、模型可观察提炼"的属性；
+// 凡"需要凭空生成的命名效果（胶片/CCD/黑白）、几何身份类（瘦身/姿势/构图）"都不放。
+const STYLE_FEATURES = {
+  tone: {
+    label: '色调',
+    prompt: '色调：参考第二张图的整体色彩风格、冷暖倾向和调色感觉，把相似的色调应用到第一张图'
+  },
+  light: {
+    label: '光影氛围',
+    prompt: '光影氛围：参考第二张图的光线氛围、明暗调子和情绪光感，让第一张图呈现相似的光影氛围'
+  },
+  texture: {
+    label: '画面质感',
+    prompt: '画面质感：参考第二张图实际呈现的成像质感（清晰或柔和、有无颗粒感、数码或胶片味道），只模仿第二张图真实具备的质感，不要凭空添加第二张图没有的效果'
+  },
+  background: {
+    label: '背景环境',
+    prompt: '背景环境：参考第二张图的背景环境风格、场景氛围和背景虚化程度，应用到第一张图的背景'
+  },
+  skin: {
+    label: '皮肤质感',
+    prompt: '皮肤质感：参考第二张图人物皮肤的通透度、细腻度和光泽感，只迁移肤质表现，不改变第一张图人物的五官和脸型'
+  },
+  makeup: {
+    label: '妆容',
+    prompt: '妆容：参考第二张图人物的妆容风格（口红色调、眼妆、修容妆感），把相似的妆面应用到第一张图人物，只上妆、不改变五官形状和脸型'
+  }
+};
+
+function buildStyleTransferPrompt(features) {
+  const valid = (features || []).filter(k => STYLE_FEATURES[k]);
+  const featureLines = valid.map(k => '· ' + STYLE_FEATURES[k].prompt).join('\n');
+  return '这里有两张图：第一张图是需要精修的原图，第二张图是风格参考图。请以第一张图为基础精修，第二张图仅作为风格参考，借鉴以下方面：\n'
+    + featureLines + '\n'
+    + '严格要求：只迁移上述明确列出的风格特征；第一张图人物的身份、长相、五官、脸型、发型发色、身材体型、姿势动作、手势、服装款式与颜色、构图和拍摄视角必须完全保持不变，人物不能变成第二张图里的人。未列出的方面一律保持第一张图原样。风格迁移要自然协调、幅度克制，与第一张图的人物和画面融合真实。';
+}
+
+// 准备单张图片为 base64（本地路径压缩读取 / 远程 URL 下载读取）
+async function prepareImageRef(imagePath, imageUrl) {
+  if (imagePath && !isRemoteUrl(imagePath)) {
+    return await fileToBase64(imagePath);
+  } else if (imageUrl && isRemoteUrl(imageUrl)) {
+    return await downloadToBase64(imageUrl);
+  } else if (imagePath) {
+    return await fileToBase64(imagePath);
+  } else if (imageUrl) {
+    return await fileToBase64(imageUrl);
+  }
+  return '';
+}
+
+// 参考图风格迁移：传入原图 + 一张风格参考图，按勾选特征迁移
+// options:
+//   imagePath/imageUrl  原图（要精修的照片）
+//   refPath/refUrl      风格参考图
+//   features            勾选的特征 key 数组（见 STYLE_FEATURES）
+//   signal              取消令牌
+async function generateStyleTransfer(options) {
+  const {
+    imagePath, imageUrl,
+    refPath = '', refUrl = '',
+    features = [],
+    signal
+  } = options;
+
+  if (!USE_REAL_ARK) {
+    await mockDelay(2500);
+    return { url: imageUrl || imagePath, taskId: 'mock_style_' + Date.now() };
+  }
+
+  const validFeatures = (features || []).filter(k => STYLE_FEATURES[k]);
+  if (!validFeatures.length) {
+    throw new Error('请至少选择一个要借鉴的特征');
+  }
+
+  let originRef = '';
+  let styleRef = '';
+  try {
+    originRef = await prepareImageRef(imagePath, imageUrl);
+  } catch (e) {
+    throw new Error('准备原图失败: ' + e.message);
+  }
+  try {
+    styleRef = await prepareImageRef(refPath, refUrl);
+  } catch (e) {
+    throw new Error('准备参考图失败: ' + e.message);
+  }
+  if (!originRef) throw new Error('原图读取失败');
+  if (!styleRef) throw new Error('参考图读取失败');
+
+  if (signal && signal.cancelled) {
+    const err = new Error('abort'); err.cancelled = true; throw err;
+  }
+
+  const prompt = buildStyleTransferPrompt(validFeatures);
+
+  // 风格迁移专用负面词：重点防止"人物变成参考图里的人"、身份/姿势/服装/构图漂移
+  const STYLE_TRANSFER_NEGATIVE = '换脸，人物变成参考图里的人，五官改变，脸型改变，身份变化，陌生人脸，'
+    + '发型发色改变，姿势改变，动作改变，手势变化，身材变形，肢体增多或减少，多腿多手臂，手指畸形，'
+    + '服装款式改变，服装颜色改变，穿着方式改变，构图变化，视角变化，裁切，扩图，'
+    + '背景人物变形，文字错乱，水印，畸形结构，画面撕裂，重影，模糊，过曝，噪点';
+
+  const body = {
+    model: ARK_CONFIG.model,
+    prompt,
+    response_format: 'b64_json',
+    size: ARK_CONFIG.size,
+    stream: false,
+    watermark: ARK_CONFIG.watermark,
+    image: [originRef, styleRef]   // 多图生图：[原图, 风格参考图]
+  };
+  body.negative_prompt = STYLE_TRANSFER_NEGATIVE;
+
+  console.log('[ai-service] 风格迁移，特征:', validFeatures.join(','),
+    '原图:', Math.round(originRef.length / 1024) + 'KB',
+    '参考图:', Math.round(styleRef.length / 1024) + 'KB');
+
+  try {
+    return await arkRequest(body, signal);
+  } catch (err) {
+    if (err.cancelled) {
+      console.log('[ai-service] 风格迁移请求已被用户取消');
+      throw err;
+    }
+    console.error('[ai-service] 风格迁移失败:', err.message, err.statusCode || '', err.code || '');
+    throw err;
+  }
+}
+
 module.exports = {
   uploadImage,
   submitRetouch,
@@ -609,5 +752,7 @@ module.exports = {
   pollTaskStatus,
   connectTaskWebSocket,
   generateEdit,
+  generateStyleTransfer,
+  STYLE_FEATURES,
   createCancelToken
 };

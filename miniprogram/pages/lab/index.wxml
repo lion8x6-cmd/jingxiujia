@@ -1,7 +1,7 @@
 <view class="page">
   <view class="header">
     <text class="header-title">Skill 实验室</text>
-    <text class="header-desc">测试不同的 AI 能力，调试提示词效果</text>
+    <text class="header-desc">测试不同的修图能力，调试提示词效果</text>
   </view>
 
   <!-- 提示词测试入口（独立卡片） -->
@@ -16,7 +16,7 @@
     <text class="entry-arrow">›</text>
   </view>
 
-  <view class="section-label">AI Skills</view>
+  <view class="section-label">修图能力</view>
 
   <view class="skill-list">
     <view class="skill-card" wx:for="{{skills}}" wx:key="id"

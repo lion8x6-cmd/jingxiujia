@@ -143,103 +143,134 @@ function processImageData(imageData, w, h, f) {
   applyVignette(imageData, w, h, f.vignette || 0);
 }
 
-// 加载图片（离屏 canvas 环境）
-function loadImage(canvas, src) {
+// ============ 抖音兼容：必须用页面内 <canvas type="2d"> 节点 ============
+// 抖音离屏 canvas（createOffscreenCanvas）没有 createImage()，无法加载图片；
+// 且 V2 canvas 不能用 canvasToTempFilePath。因此 renderPreview/applyFilters
+// 都接收页面传入的 canvas 节点，用 node.createImage() 加载、node.toDataURL() 导出，
+// 再经 base64ToArrayBuffer + writeFileSync 落盘（JPEG，避开用户目录 10MB 单文件限制）。
+let filterQueue = Promise.resolve();
+function enqueue(task) {
+  const run = filterQueue.then(() => task());
+  filterQueue = run.catch(() => {});
+  return run;
+}
+
+// 加载图片（用页面 canvas 节点的 createImage）
+function loadImage(canvasNode, src) {
   return new Promise((resolve, reject) => {
-    const img = canvas.createImage();
+    const img = canvasNode.createImage();
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = (e) => reject(e || new Error('image load fail'));
     img.src = src;
   });
 }
 
-function dataURLToFile(dataUrl) {
+// 清理旧的 filter_ 临时文件，避免撑爆用户目录配额
+function cleanOldFilterFiles(fs) {
+  try {
+    const dir = platform.env.USER_DATA_PATH;
+    const names = fs.readdirSync(dir);
+    names.forEach((n) => {
+      if (n.indexOf('filter_') === 0) {
+        try { fs.unlinkSync(dir + '/' + n); } catch (e) {}
+      }
+    });
+  } catch (e) {}
+}
+
+// V2 canvas 导出：toDataURL → base64ToArrayBuffer → writeFileSync（JPEG）
+function exportCanvasToFile(canvasNode) {
   return new Promise((resolve, reject) => {
     try {
-      const base64 = dataUrl.split(',')[1];
       const fs = platform.getFileSystemManager();
-      const filePath = platform.env.USER_DATA_PATH + '/filter_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
-      fs.writeFile({ filePath, data: base64, encoding: 'base64', success: () => resolve(filePath), fail: reject });
+      cleanOldFilterFiles(fs);
+      const filePath = platform.env.USER_DATA_PATH + '/filter_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.jpg';
+      const dataURL = canvasNode.toDataURL('image/jpeg', 0.92);
+      const base64 = dataURL.split(',')[1];
+      if (platform.base64ToArrayBuffer) {
+        const ab = platform.base64ToArrayBuffer(base64);
+        fs.writeFileSync(filePath, ab);
+        resolve(filePath);
+      } else {
+        fs.writeFile({ filePath, data: base64, encoding: 'base64', success: () => resolve(filePath), fail: reject });
+      }
     } catch (e) { reject(e); }
   });
 }
 
-// 预览：渲染小图 dataURL（maxW 控制尺寸，保证拖动流畅）
-function renderPreview(srcPath, filters, maxW) {
+// 预览：渲染小图 dataURL（maxW 控制尺寸，保证拖动流畅）。canvasNode 必传。
+function renderPreview(srcPath, filters, canvasNode, maxW) {
   const maxWidth = maxW || 260;
-  return new Promise((resolve) => {
-    if (!hasEffect(filters)) { resolve(''); return; }
-    try {
-      const canvas = platform.createOffscreenCanvas({ type: '2d', width: maxWidth, height: maxWidth });
-      const ctx = canvas.getContext('2d');
-      loadImage(canvas, srcPath).then(img => {
-        try {
-          const iw = img.naturalWidth || img.width;
-          const ih = img.naturalHeight || img.height;
-          const scale = Math.min(1, maxWidth / iw);
-          const w = Math.max(1, Math.round(iw * scale));
-          const h = Math.max(1, Math.round(ih * scale));
-          canvas.width = w; canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-          const imageData = ctx.getImageData(0, 0, w, h);
-          processImageData(imageData, w, h, filters);
-          ctx.putImageData(imageData, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } catch (e) {
-          console.warn('[filters] 预览渲染失败:', e);
-          resolve('');
-        }
-      }).catch(() => resolve(''));
-      setTimeout(() => resolve(''), 6000);
-    } catch (e) {
-      resolve('');
-    }
-  });
+  if (!hasEffect(filters)) return Promise.resolve('');
+  if (!canvasNode || typeof canvasNode.createImage !== 'function') return Promise.resolve('');
+  return enqueue(() => new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; resolve(v); } };
+    const timer = setTimeout(() => finish(''), 6000);
+    loadImage(canvasNode, srcPath).then(img => {
+      try {
+        const ctx = canvasNode.getContext('2d');
+        const iw = img.naturalWidth || img.width;
+        const ih = img.naturalHeight || img.height;
+        const scale = Math.min(1, maxWidth / iw);
+        const w = Math.max(1, Math.round(iw * scale));
+        const h = Math.max(1, Math.round(ih * scale));
+        canvasNode.width = w; canvasNode.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        processImageData(imageData, w, h, filters);
+        ctx.putImageData(imageData, 0, 0);
+        img.src = '';
+        clearTimeout(timer);
+        finish(canvasNode.toDataURL('image/png'));
+      } catch (e) {
+        console.warn('[filters] 预览渲染失败:', e);
+        clearTimeout(timer);
+        finish('');
+      }
+    }).catch(() => { clearTimeout(timer); finish(''); });
+  }));
 }
 
-// 应用：全尺寸处理并导出文件
-function applyFilters(srcPath, filters) {
+// 应用：全尺寸处理并导出文件。canvasNode 必传。
+function applyFilters(srcPath, filters, canvasNode) {
   return new Promise((resolve) => {
     let settled = false;
     const done = (p) => { if (!settled) { settled = true; resolve(p); } };
     if (!hasEffect(filters)) { done(srcPath); return; }
-    try {
-      const canvas = platform.createOffscreenCanvas({ type: '2d', width: 100, height: 100 });
-      const ctx = canvas.getContext('2d');
-      loadImage(canvas, srcPath).then(img => {
+    if (!canvasNode || typeof canvasNode.createImage !== 'function') { done(srcPath); return; }
+    enqueue(() => new Promise((res) => {
+      const finish = (p) => { res(); done(p); };
+      const timer = setTimeout(() => finish(srcPath), 20000);
+      loadImage(canvasNode, srcPath).then(img => {
         try {
-          const w = img.naturalWidth || img.width;
-          const h = img.naturalHeight || img.height;
-          canvas.width = w; canvas.height = h;
+          const ctx = canvasNode.getContext('2d');
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          // 长边限制 1600，避免超大图 canvas/getImageData 内存超限（1600 仍足够高清）
+          const MAX = 1600;
+          const longSide = Math.max(w, h);
+          if (longSide > MAX) {
+            const k = MAX / longSide;
+            w = Math.max(1, Math.round(w * k));
+            h = Math.max(1, Math.round(h * k));
+          }
+          canvasNode.width = w; canvasNode.height = h;
           ctx.drawImage(img, 0, 0, w, h);
           const imageData = ctx.getImageData(0, 0, w, h);
           processImageData(imageData, w, h, filters);
           ctx.putImageData(imageData, 0, 0);
-          try {
-            dataURLToFile(canvas.toDataURL('image/png'))
-              .then(done)
-              .catch(() => exportByApi(canvas, srcPath, done));
-          } catch (e) {
-            exportByApi(canvas, srcPath, done);
-          }
+          img.src = '';
+          exportCanvasToFile(canvasNode)
+            .then((p) => { clearTimeout(timer); finish(p || srcPath); })
+            .catch(() => { clearTimeout(timer); finish(srcPath); });
         } catch (e) {
           console.warn('[filters] 处理失败:', e);
-          done(srcPath);
+          clearTimeout(timer);
+          finish(srcPath);
         }
-      }).catch(() => done(srcPath));
-      setTimeout(() => done(srcPath), 12000);
-    } catch (e) {
-      console.warn('[filters] 初始化失败:', e);
-      done(srcPath);
-    }
-  });
-}
-
-function exportByApi(canvas, fallback, cb) {
-  platform.canvasToTempFilePath({
-    canvas, fileType: 'png', quality: 1,
-    success: (res) => cb(res.tempFilePath),
-    fail: () => cb(fallback)
+      }).catch(() => { clearTimeout(timer); finish(srcPath); });
+    }));
   });
 }
 

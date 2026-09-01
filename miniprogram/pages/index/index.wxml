@@ -3,13 +3,39 @@
 
   <view class="bottom-panel">
     <button class="start-btn" bindtap="onStartTap" hover-class="start-btn-hover" hover-stay-time="80">
-      <text class="start-btn-text">选图开始修</text>
-      <text class="start-btn-arrow">››</text>
+      <view class="start-btn-inner">
+        <text class="start-btn-text">选图开始修</text>
+        <text class="start-btn-arrow">›</text>
+      </view>
+      <text class="start-btn-sub">一键出大片</text>
     </button>
     <view class="custom-entry" bindtap="onCustomTap" hover-class="custom-entry-hover" hover-stay-time="80">
       <text class="custom-entry-icon">✎</text>
       <text class="custom-entry-text">个性化修图</text>
       <text class="custom-entry-sub">先选图，再自己编辑调整</text>
     </view>
+
+    <view class="tools-head">
+      <text class="tools-title">更多工具</text>
+      <text class="tools-hint">上传照片即可用</text>
+    </view>
+    <view class="tools-grid">
+      <view class="tool-item {{item.hl ? 'hl' : ''}}" wx:for="{{tools}}" wx:key="key"
+            bindtap="onToolTap" data-tool="{{item.key}}" hover-class="tool-item-hover" hover-stay-time="60">
+        <view class="tool-icon tool-icon-{{item.cls}}">
+          <image class="tool-icon-img" src="{{item.icon}}" mode="aspectFit"></image>
+        </view>
+        <view class="tool-text">
+          <text class="tool-name">{{item.name}}</text>
+          <text class="tool-sub">{{item.sub}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 赚钱悬浮按钮：分销素材入口 -->
+  <view class="money-fab" bindtap="onMoneyTap" hover-class="money-fab-hover" hover-stay-time="60">
+    <text class="money-fab-yen">¥</text>
+    <text class="money-fab-txt">赚钱</text>
   </view>
 </view>

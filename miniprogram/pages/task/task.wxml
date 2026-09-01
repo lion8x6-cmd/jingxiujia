@@ -1,0 +1,95 @@
+<view class="page">
+  <!-- 顶部示意横幅 -->
+  <view class="mock-banner">
+    <text class="mock-banner-tag">示意页</text>
+    <text class="mock-banner-text">本页为「抖音短视频达人推广挂载」任务详情演示，数据为占位，后续对接真实任务</text>
+  </view>
+
+  <!-- 任务卡片 -->
+  <view class="task-card">
+    <view class="task-head">
+      <image class="brand-logo" src="/images/logo.png" mode="aspectFit"></image>
+      <view class="brand-info">
+        <text class="brand-name">P图精修必拍 · 修图小程序</text>
+        <view class="brand-tags">
+          <text class="brand-tag">效果类任务</text>
+          <text class="brand-tag hot">高佣</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="reward-row">
+      <view class="reward-item">
+        <text class="reward-num">¥8.8</text>
+        <text class="reward-label">单条视频佣金</text>
+      </view>
+      <view class="reward-divider"></view>
+      <view class="reward-item">
+        <text class="reward-num">30天</text>
+        <text class="reward-label">挂载归因周期</text>
+      </view>
+      <view class="reward-divider"></view>
+      <view class="reward-item">
+        <text class="reward-num">≥1000</text>
+        <text class="reward-label">粉丝可接</text>
+      </view>
+    </view>
+
+    <view class="task-desc">
+      <text class="block-title">任务说明</text>
+      <text class="block-text">发布一条带「P图精修必拍」小程序挂载的短视频：展示废片/老照片修复前后的对比效果，视频挂载本小程序组件，观众点挂载进入使用即计佣。</text>
+    </view>
+
+    <view class="task-req">
+      <text class="block-title">创作要求</text>
+      <view class="req-item"><text class="req-dot">·</text><text>需出现修图前后对比画面（可直接用拼接图）</text></view>
+      <view class="req-item"><text class="req-dot">·</text><text>视频时长 ≥ 10 秒，画面清晰无水印</text></view>
+      <view class="req-item"><text class="req-dot">·</text><text>必须挂载本小程序组件，不得引导站外</text></view>
+      <view class="req-item"><text class="req-dot">·</text><text>文案可参考下方已为你备好的种草文案</text></view>
+    </view>
+
+    <!-- 已备好的素材 -->
+    <view class="material-box">
+      <text class="block-title">已为你备好的素材</text>
+      <view class="material-row">
+        <image wx:if="{{stitchedPath}}" class="material-img" src="{{stitchedPath}}" mode="aspectFill"></image>
+        <view wx:else class="material-img material-img-empty"><text>无拼接图</text></view>
+        <view class="material-text">
+          <text class="material-label">对比拼接图</text>
+          <text class="material-sub">{{stitchedPath ? '已保存到相册' : '回上一步生成'}}</text>
+        </view>
+      </view>
+      <view class="copy-line" wx:if="{{copyText}}">
+        <text class="copy-line-label">种草文案：</text>
+        <text class="copy-line-text">{{copyText}}</text>
+      </view>
+      <view class="copy-line copy-line-tip" wx:else>种草文案：回上一步生成或润色一条</view>
+    </view>
+
+    <!-- 步骤 -->
+    <view class="steps">
+      <text class="block-title">参与步骤</text>
+      <view class="step-row" wx:for="{{steps}}" wx:key="idx">
+        <view class="step-num">{{index + 1}}</view>
+        <view class="step-content">
+          <text class="step-title">{{item.title}}</text>
+          <text class="step-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 收益说明 -->
+  <view class="income-card">
+    <text class="block-title">佣金怎么算</text>
+    <text class="block-text">观众通过你视频左下角的小程序组件进入并产生有效使用，按有效转化结算佣金，单条最高 ¥8.8，多拍多得；数据在抖音「创作者中心 - 任务广场」可查。</text>
+  </view>
+
+  <view class="bottom-space"></view>
+
+  <!-- 底部按钮 -->
+  <view class="footer">
+    <button class="btn-post" bindtap="onPostTap">去抖音接单发布</button>
+    <text class="footer-note">点击复制小程序名，并查看在抖音任务台接单的步骤</text>
+  </view>
+</view>

@@ -14,8 +14,8 @@ Page({
     isBatch: false,
     total: 1,
     progress: 0,
-    statusText: 'AI处理中...',
-    statusTitle: 'AI 正在精修',
+    statusText: '精修中...',
+    statusTitle: '正在精修',
     progressHint: '预计 15-30 秒',
     completedCount: 0,
     estimatedTime: 15,
@@ -201,7 +201,7 @@ Page({
     this.setData({
       progress: realProgress,
       completedCount: completed,
-      statusText: realStatus || 'AI处理中...'
+      statusText: realStatus || '精修中...'
     });
   },
 

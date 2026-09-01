@@ -1,0 +1,168 @@
+<view class="page">
+  <!-- 顶部栏 -->
+  <view class="top-bar">
+    <text class="top-bar-title">提示词测试</text>
+    <view class="history-entry" bindtap="goHistory">
+      <text class="history-icon">📋</text>
+      <text>测试历史</text>
+    </view>
+  </view>
+
+  <!-- 图片选择区 -->
+  <view class="section">
+    <view class="section-title">参考图片</view>
+    <view class="image-picker" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <view class="picker-icon">+</view>
+      <text class="picker-text">点击上传图片</text>
+      <text class="picker-hint">支持相册选择或拍照</text>
+    </view>
+    <view class="image-preview" wx:else>
+      <image class="preview-img" src="{{imagePath}}" mode="aspectFit" bindtap="previewImage"></image>
+      <view class="image-actions">
+        <view class="img-btn" catchtap="chooseImage">重新选择</view>
+        <view class="img-btn danger" catchtap="removeImage">移除</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提示词库快捷选择 -->
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">提示词库</text>
+      <view class="manage-btn" bindtap="toggleManage">{{isManaging ? '完成' : '管理'}}</view>
+    </view>
+
+    <!-- 分类栏 -->
+    <scroll-view scroll-x class="category-bar" enhanced show-scrollbar="{{false}}" wx:if="{{categories.length}}">
+      <view class="cat-chip {{activeCategory === item.name ? 'active' : ''}}"
+            wx:for="{{categories}}" wx:key="name"
+            bindtap="selectCategory" data-cat="{{item.name}}">
+        {{item.name}}
+      </view>
+    </scroll-view>
+
+    <!-- 提示词列表 -->
+    <scroll-view scroll-y class="prompt-list" wx:if="{{filteredPrompts.length}}">
+      <view class="prompt-card {{selectedPromptId === item.id ? 'active' : ''}}"
+            wx:for="{{filteredPrompts}}" wx:key="id"
+            bindtap="selectPrompt" data-id="{{item.id}}">
+        <view class="prompt-card-head">
+          <text class="prompt-name">{{item.name}}</text>
+          <view class="prompt-card-actions" wx:if="{{isManaging}}">
+            <text class="prompt-edit" catchtap="onEditPromptTpl" data-id="{{item.id}}" wx:if="{{!item.builtin}}">编辑</text>
+            <text class="prompt-del" catchtap="deletePrompt" data-id="{{item.id}}" wx:if="{{!item.builtin}}">删除</text>
+            <text class="prompt-badge" wx:else>内置</text>
+          </view>
+        </view>
+        <text class="prompt-preview">{{item.prompt}}</text>
+      </view>
+    </scroll-view>
+
+    <view class="empty-hint" wx:else>该分类下暂无提示词</view>
+
+    <view class="add-prompt-btn" bindtap="openAddPrompt">
+      <text>+ 新建提示词模板</text>
+    </view>
+  </view>
+
+  <!-- 当前提示词编辑区 -->
+  <view class="section">
+    <view class="section-title">提示词 <text class="required">*</text></view>
+    <textarea class="prompt-textarea"
+              placeholder="选择上方模板或手动输入提示词，必须填写才能生成"
+              placeholder-class="placeholder"
+              value="{{promptText}}"
+              bindinput="onPromptInput"
+              maxlength="2000"
+              auto-height
+              cursor-spacing="120"
+              adjust-position="{{true}}"
+              show-confirm-bar="{{false}}"/>
+    <view class="char-count">{{promptText.length}}/2000</view>
+
+    <view class="negative-toggle" bindtap="toggleNegative">
+      <text>负面提示词（可选）</text>
+      <text class="toggle-arrow">{{showNegative ? '▾' : '▸'}}</text>
+    </view>
+    <textarea wx:if="{{showNegative}}"
+              class="prompt-textarea negative"
+              placeholder="描述不希望出现的内容，如：换脸、过度磨皮、画面变形..."
+              placeholder-class="placeholder"
+              value="{{negativeText}}"
+              bindinput="onNegativeInput"
+              maxlength="500"
+              auto-height
+              cursor-spacing="120"
+              adjust-position="{{true}}"
+              show-confirm-bar="{{false}}"/>
+  </view>
+
+  <!-- 生成按钮 -->
+  <view class="submit-bar">
+    <button class="btn-generate {{(!canGenerate || generating) ? 'disabled' : ''}}"
+            bindtap="generate" disabled="{{!canGenerate || generating}}">
+      <text class="btn-generate-text" wx:if="{{!generating}}">生成图片</text>
+      <text class="btn-generate-text" wx:else>生成中 {{genProgressText}}%</text>
+    </button>
+  </view>
+
+  <!-- 结果展示 -->
+  <view class="section result-section" wx:if="{{resultUrl}}">
+    <view class="section-head">
+      <text class="section-title">生成结果</text>
+    </view>
+    <view class="result-img-wrap">
+      <image class="result-img" src="{{showOriginal ? imagePath : resultUrl}}" mode="widthFix"
+             bindtouchstart="onResultTouchStart"
+             bindtouchend="onResultTouchEnd"
+             bindtouchcancel="onResultTouchEnd"></image>
+      <view class="zoom-btn" catchtap="previewResult">
+        <text class="zoom-icon">⤢</text>
+      </view>
+      <view class="badge {{showOriginal ? 'original' : 'result'}}">
+        {{showOriginal ? '原图' : '精修结果'}}
+      </view>
+    </view>
+    <view class="compare-hint" wx:if="{{imagePath && resultUrl}}">长按查看原图</view>
+    <view class="result-actions">
+      <view class="result-btn" bindtap="saveResult">保存到相册</view>
+      <view class="result-btn" bindtap="useAsInput">作为新参考图</view>
+    </view>
+  </view>
+
+  <!-- 新建/编辑提示词弹窗 -->
+  <view class="modal-mask" wx:if="{{showEditor}}" bindtap="closeEditor"></view>
+  <view class="modal {{showEditor ? 'show' : ''}}">
+    <view class="modal-title">{{editingId ? '编辑提示词' : '新建提示词'}}</view>
+    <view class="form-item">
+      <text class="form-label">名称</text>
+      <input class="form-input" placeholder="如：日系清新人像" value="{{editName}}"
+             bindinput="onEditName" maxlength="20"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">分类</text>
+      <input class="form-input" placeholder="如：人像、风景、电商" value="{{editCategory}}"
+             bindinput="onEditCategory" maxlength="10"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">正向提示词</text>
+      <textarea class="form-textarea" placeholder="输入提示词内容" value="{{editPrompt}}"
+                bindinput="onEditPrompt" maxlength="2000" auto-height
+                cursor-spacing="160" adjust-position="{{true}}" show-confirm-bar="{{false}}"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">负面提示词（可选）</text>
+      <textarea class="form-textarea" placeholder="不希望出现的内容" value="{{editNegative}}"
+                bindinput="onEditNegative" maxlength="500" auto-height
+                cursor-spacing="160" adjust-position="{{true}}" show-confirm-bar="{{false}}"/>
+    </view>
+    <view class="modal-btns">
+      <view class="modal-btn cancel" bindtap="closeEditor">取消</view>
+      <view class="modal-btn confirm {{!canSaveEditor ? 'disabled' : ''}}"
+            bindtap="savePrompt">保存</view>
+    </view>
+  </view>
+
+  <!-- 提示：未输入提示词时 -->
+  <view class="toast-hint" wx:if="{{showEmptyTip}}">请先输入提示词</view>
+</view>

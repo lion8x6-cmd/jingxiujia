@@ -7,7 +7,15 @@ const { chooseImage } = require('../../utils/picker');
 const DEFAULT_TEMPLATE_ID = 't2';
 
 Page({
-  data: {},
+  data: {
+    // 更多工具：4 个入口。hl=绿色高亮（老照片修复），icon=线性图标 PNG
+    tools: [
+      { key: 'text', name: '无痕改字', sub: '修改文字', icon: '/images/tools/tool-text.png', cls: 'blue' },
+      { key: 'cutout', name: '智能抠图', sub: '抠出主体', icon: '/images/tools/tool-cutout.png', cls: 'purple' },
+      { key: 'restore', name: '老照片修复', sub: '模糊焕新', icon: '/images/tools/tool-restore.png', cls: 'green', hl: true },
+      { key: 'erase', name: '智能消除', sub: '去除杂物', icon: '/images/tools/tool-erase.png', cls: 'amber' }
+    ]
+  },
 
   onLoad() {},
 
@@ -36,6 +44,29 @@ Page({
   // 个性化修图：进入编辑页（空状态，先在页内上传图片再手动编辑）
   onCustomTap() {
     wx.navigateTo({ url: '/pages/compare/compare?blank=1' });
+  },
+
+  // 赚钱：进入分销素材页（图片拼接 + 种草文案 + 一键发抖音）
+  onMoneyTap() {
+    wx.navigateTo({ url: '/pages/promo/promo' });
+  },
+
+  // 更多工具：点图标直接拉起相册选图，选完带图进入编辑页并自动定位到对应模式（少一次跳转）
+  onToolTap(e) {
+    const tool = e.currentTarget.dataset.tool;
+    if (!tool) return;
+    chooseImage({ count: 1, allowCamera: true })
+      .then((res) => {
+        const paths = (res.tempFiles || []).map(f => f.tempFilePath).filter(Boolean);
+        if (!paths.length) return;
+        // 本地临时路径经 globalData 传递，避免 URL 编码兼容问题
+        app.globalData.toolEntryImg = paths[0];
+        wx.navigateTo({ url: `/pages/compare/compare?blank=1&tool=${tool}` });
+      })
+      .catch((err) => {
+        if (err && err.message === '已取消') return;
+        console.warn('[index] tool chooseImage:', err);
+      });
   },
 
   async submitImages(paths) {
@@ -108,7 +139,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '精修家 - AI一键精修废片',
+      title: 'P图精修必拍 - 一键精修废片',
       path: '/pages/index/index'
     };
   }

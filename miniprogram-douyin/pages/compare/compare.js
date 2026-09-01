@@ -4,7 +4,54 @@ const { TaskStatus } = require('../../utils/task-status');
 const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image');
 const { matchBrightness } = require('../../utils/brightness-match');
 const { renderPreview, applyFilters, hasEffect } = require('../../utils/filters');
+const { chooseImage } = require('../../utils/picker');
 const platform = require('../../utils/platform.js');
+
+// 首页工具入口（?tool=xxx）的页面标题 + 各面板专属文案
+// 一句话修图(ai)/局部修改(local) 的提示语、placeholder、快捷词都按工具区分，不复用人像精修文案
+const TOOL_UI = {
+  text: {
+    navTitle: '无痕改字',
+    aiTip: '描述想改的文字，例如：“把海报上的价格改成 99 元”',
+    aiPlaceholder: '想把哪里的文字改成什么？告诉我…',
+    aiChips: [
+      { text: '把画面中的文字改成：新品上市', label: '改标题' },
+      { text: '把价格数字改成 99 元', label: '改价格' },
+      { text: '修正画面里的错别字', label: '改错别字' }
+    ],
+    localExample: '框住要改的文字，输入“改成：全场 5 折”',
+    regionPlaceholder: '输入要改成的文字，如：改成 5 折优惠'
+  },
+  cutout: {
+    navTitle: '智能抠图',
+    aiTip: '主体抠出后想换成什么背景？例如：“换成纯白证件照背景”',
+    aiPlaceholder: '想换成什么背景？留空则自动抠成干净纯色背景…',
+    aiChips: [
+      { text: '换成纯白色证件照背景', label: '纯白背景' },
+      { text: '换成浅蓝色证件照底色', label: '证件蓝底' },
+      { text: '背景虚化，突出人物主体', label: '虚化背景' },
+      { text: '换成干净的纯色背景', label: '纯色背景' }
+    ],
+    localExample: '框选边缘，输入“发丝边缘抠得更精细自然”',
+    regionPlaceholder: '局部精修抠图边缘，如：头发丝抠干净'
+  },
+  erase: {
+    navTitle: '智能消除',
+    aiTip: '描述想去掉的东西，例如：“去掉画面里的路人和垃圾桶”',
+    aiPlaceholder: '想消除什么？路人、杂物、水印…',
+    aiChips: [
+      { text: '去掉画面里的路人', label: '消除路人' },
+      { text: '去掉垃圾桶和多余杂物', label: '消除杂物' },
+      { text: '去掉水印和多余文字', label: '消除水印' }
+    ],
+    localExample: '框住要消除的东西，输入“消除此处，用周围背景自然补全”',
+    regionPlaceholder: '输入“消除”，如：消除这个路人'
+  },
+  restore: {
+    navTitle: '老照片修复'
+    // restore 用独立修复面板；修复完转一句话修图做后续精修，面板文案沿用通用人像版
+  }
+};
 
 Page({
   data: {
@@ -15,6 +62,9 @@ Page({
     currentIndex: 0,
     currentItem: null,
     batchItems: [],
+
+    // 个性化修图空状态（blank=1 进入，先在页内上传图片再编辑）
+    isBlank: false,
 
     // 当前展示的图片（可能是历史版本而非最新）
     displayUrl: '',
@@ -33,14 +83,11 @@ Page({
     showPromptModal: false,
     promptContent: '',
 
-    // 调节模式：'local' 局部编辑 / 'quick' 快捷部位 / 'ai' 一句话改图
-    adjustMode: 'local',
+    // 调节模式：'ai' 一句话修图 / 'style' 参考图 / 'local' 局部修改 / 'filter' 实时调节
+    adjustMode: 'ai',
 
     // 编辑面板展开状态
     editExpanded: false,
-
-    // 一句话改图：是否开启"指定修改区域"框选
-    aiUseRegion: false,
 
     // 局部编辑
     localRegions: [],      // [{id, x1,y1,x2,y2, prompt}] 归一化坐标 0-999
@@ -53,12 +100,27 @@ Page({
     dragHandle: null,      // 手柄标识
     dragStartData: null,   // 拖拽开始时的状态快照
 
-    // 快捷调节
-    bodyParts: [],
-    selectedPart: '',
-    currentPartName: '',
-    adjustments: {},
-    hasAdjustments: false,
+    // 参考图风格迁移
+    refImagePath: '',      // 风格参考图本地路径
+    styleFeatureChips: [], // 特征勾选渲染数据 [{key,label,on}]
+
+    // 首页工具入口（?tool=xxx）：text/cutout/restore/erase
+    toolHint: '',          // 局部模式下的专属引导文案（改字/消除）
+    toolLocked: false,     // 改字/抠图/消除工具：只保留「一句话修图」「局部修改」，隐藏参考图/实时调节
+    restoreColorize: true, // 老照片修复：黑白照片自动上色（默认开）
+    activeTool: '',        // 当前工具 key（text/cutout/erase），空=通用人像精修
+
+    // 一句话修图 / 局部修改面板文案（按工具切换，默认是通用人像精修版）
+    aiTip: '用一句话描述整体效果，例如：“皮肤再白皙一点，背景虚化一些”',
+    aiPlaceholder: '想整体怎么改？告诉我...',
+    aiChips: [
+      { text: '皮肤更白皙通透', label: '皮肤更白皙' },
+      { text: '背景虚化，突出人物', label: '背景虚化' },
+      { text: '增强光影质感，更有电影感', label: '电影感' },
+      { text: '牙齿更白，笑容更自然', label: '美白牙齿' }
+    ],
+    localExample: '输入修改指令，例如：磨皮美颜、换成卷发',
+    regionPlaceholder: '输入修改指令，如：磨皮美颜',
 
     // AI 调节
     aiPrompt: '',
@@ -113,8 +175,44 @@ Page({
     const isBatch = options.isBatch === '1';
     const total = parseInt(options.total) || 1;
 
-    const parts = storage.getBodyParts();
     const records = storage.getRecords();
+    const styleFeatureChips = this.buildStyleFeatureChips([]);
+
+    // 个性化修图空状态：不带图进入，先在页内上传图片再编辑
+    if (options.blank === '1') {
+      this._blankDraftId = '';
+      this._pendingTool = options.tool || '';   // 首页工具入口：text/cutout/restore/erase
+      // 改字/抠图/消除：只保留「一句话修图」「局部修改」两个模式；老照片无 tab；普通入口全量
+      const lockedTool = ['text', 'cutout', 'erase'].indexOf(this._pendingTool) !== -1;
+      // 首页工具入口已选好图（globalData 传递），带图直接加载，跳过空白页
+      const appInst = getApp();
+      const presetImg = (appInst.globalData && appInst.globalData.toolEntryImg) || '';
+      if (appInst.globalData) appInst.globalData.toolEntryImg = '';
+
+      this.setData({
+        isBlank: true,
+        isBatch: false,
+        editExpanded: false,
+        styleFeatureChips,
+        toolHint: '',
+        toolLocked: lockedTool,
+        currentItem: null,
+        batchItems: [],
+        versions: [],
+        versionIdx: -1,
+        displayUrl: '',
+        versionLabel: '原图',
+        selectedSaveIds: [],
+        selectedSaveMap: {}
+      });
+      this.refreshFilterChips();
+      setTimeout(() => this.measureStage(), 320);
+      if (presetImg) {
+        // 首页工具直接选图进入：自动建草稿并定位到工具模式（同步调用，不闪空白页）
+        this.loadBlankImage(presetImg);
+      }
+      return;
+    }
 
     let batchItems = [];
     let currentItem = null;
@@ -140,9 +238,7 @@ Page({
 
     this.setData({
       taskId, batchId, isBatch, total,
-      bodyParts: parts,
-      selectedPart: parts[0] ? parts[0].id : '',
-      currentPartName: parts[0] ? parts[0].name : '',
+      styleFeatureChips,
       batchItems, currentItem,
       displayUrl: versions.length ? versions[versions.length - 1].url : '',
       versionIdx: versions.length - 1,
@@ -158,6 +254,143 @@ Page({
   onReady() {
     // 测量舞台尺寸，用于缩放平移边界计算
     this.measureStage();
+    // 准备实时调节用的页面 canvas 节点（抖音离屏 canvas 无 createImage）
+    this.ensureFilterCanvas();
+  },
+
+  // 获取/缓存实时调节用的页面 canvas 节点；节点可能延迟渲染，带重试
+  ensureFilterCanvas(times) {
+    times = times || 0;
+    return new Promise((resolve) => {
+      if (this._filterCanvas) { resolve(this._filterCanvas); return; }
+      platform.createSelectorQuery().in(this)
+        .select('#filterCanvas')
+        .fields({ node: true, size: true })
+        .exec((res) => {
+          if (res && res[0] && res[0].node) {
+            this._filterCanvas = res[0].node;
+            resolve(this._filterCanvas);
+          } else if (times < 20) {
+            setTimeout(() => this.ensureFilterCanvas(times + 1).then(resolve), 100);
+          } else {
+            resolve(null);
+          }
+        });
+    });
+  },
+
+  // ============ 个性化修图（空状态）：页内上传图片 ============
+  onBlankPick() {
+    chooseImage({ count: 1, allowCamera: true })
+      .then((res) => {
+        const paths = (res.tempFiles || []).map(f => f.tempFilePath).filter(Boolean);
+        if (!paths.length) return;
+        this.loadBlankImage(paths[0]);
+      })
+      .catch((err) => {
+        if (err && err.message === '已取消') return;
+        console.warn('[compare] blank chooseImage:', err);
+      });
+  },
+
+  loadBlankImage(imgPath) {
+    // 建一条草稿记录（queued 状态、无 resultUrl），复用整套编辑/生成/版本逻辑；
+    // records 列表只显示 completed，草稿不会出现；生成成功后自然转为 completed。
+    const rec = storage.addRecord({
+      taskId: '',
+      isBatch: false,
+      batchIndex: 0,
+      batchTotal: 0,
+      type: 'custom',
+      originalUrl: imgPath,
+      resultUrl: '',
+      status: TaskStatus.QUEUED,
+      progress: 0,
+      templateId: 't2',
+      prompt: '',
+      negativePrompt: '',
+      strength: 50
+    });
+    storage.updateRecord(rec.id, { taskId: rec.id });
+    rec.taskId = rec.id;
+    this._blankDraftId = rec.id;
+
+    const versions = this.buildVersions(rec);
+    const selectedSaveIds = [rec.id];
+    const selectedSaveMap = {};
+    selectedSaveMap[rec.id] = true;
+
+    // 根据首页工具入口预设编辑模式 + 面板专属文案 + 导航标题
+    const tool = this._pendingTool || '';
+    this._pendingTool = '';
+    let adjustMode = 'ai';
+    let aiPrompt = '';
+    let toolHint = '';
+    // 面板文案：有工具配置用工具版，否则沿用默认（通用人像精修版）
+    const tui = TOOL_UI[tool] || {};
+    const panelData = {
+      aiTip: tui.aiTip || this.data.aiTip,
+      aiPlaceholder: tui.aiPlaceholder || this.data.aiPlaceholder,
+      aiChips: tui.aiChips || this.data.aiChips,
+      localExample: tui.localExample || this.data.localExample,
+      regionPlaceholder: tui.regionPlaceholder || this.data.regionPlaceholder
+    };
+    if (tool === 'text') {
+      adjustMode = 'local';
+      toolHint = '无痕改字：框住要改的文字，在下方输入“改成 XXX”，会用匹配的字体和底色无痕替换';
+    } else if (tool === 'erase') {
+      adjustMode = 'local';
+      toolHint = '智能消除：框住要去掉的路人、杂物、水印等，指令写“消除此处内容，用周围背景自然补全”';
+    } else if (tool === 'cutout') {
+      adjustMode = 'ai';
+      aiPrompt = '把画面中的主体人物完整抠出，去除原背景，换成简洁干净的纯色背景，人物边缘（含发丝）清晰自然';
+    } else if (tool === 'restore') {
+      adjustMode = 'restore';
+    }
+    // 导航栏标题显示各自功能名（无痕改字/智能抠图/智能消除/老照片修复），普通入口保持“效果对比”
+    if (tui.navTitle && platform.setNavigationBarTitle) {
+      platform.setNavigationBarTitle({ title: tui.navTitle });
+    }
+
+    this.setData({
+      isBlank: false,
+      editExpanded: true,
+      adjustMode,
+      toolHint,
+      activeTool: tool,
+      ...panelData,
+      aiPrompt,
+      taskId: rec.id,
+      currentItem: rec,
+      batchItems: [rec],
+      versions,
+      versionIdx: versions.length - 1,
+      displayUrl: rec.originalUrl,
+      versionLabel: '原图',
+      selectedSaveIds,
+      selectedSaveMap
+    }, () => {
+      this.syncSaveSelectAll();
+      this.updateVersionState();
+      this.refreshFilterChips();
+      this.recomputeCanSubmit();
+      setTimeout(() => this.measureStage(), 320);
+    });
+  },
+
+  onUnload() {
+    // 个性化修图中途放弃（草稿未生成结果）时清理草稿记录，避免存储堆积
+    if (this._blankDraftId) {
+      const item = this.data.currentItem;
+      if (!item || !item.resultUrl) {
+        storage.removeRecord(this._blankDraftId);
+      }
+      this._blankDraftId = '';
+    }
+    if (this._filterTimer) {
+      clearTimeout(this._filterTimer);
+      this._filterTimer = null;
+    }
   },
 
   measureStage() {
@@ -383,11 +616,9 @@ Page({
       versions: newVersions,
       versionIdx: newVersions.length - 1,
       showOriginal: false,
-      adjustments: {},
-      hasAdjustments: false,
       aiPrompt: '',
-      selectedPart: this.data.bodyParts[0] ? this.data.bodyParts[0].id : '',
-      currentPartName: this.data.bodyParts[0] ? this.data.bodyParts[0].name : '',
+      refImagePath: '',
+      styleFeatureChips: this.buildStyleFeatureChips([]),
       selectedSaveIds,
       selectedSaveMap
     }, () => {
@@ -405,10 +636,7 @@ Page({
   isLocalEditActive() {
     if (!this.data.editExpanded || this.data.showOriginal || this.data.generating) return false;
     // 局部编辑模式：单指=框选
-    if (this.data.adjustMode === 'local') return true;
-    // 一句话改图：开启"指定修改区域"后，单指也用于框选
-    if (this.data.adjustMode === 'ai' && this.data.aiUseRegion) return true;
-    return false;
+    return this.data.adjustMode === 'local';
   },
 
   onStageTouchStart(e) {
@@ -674,15 +902,13 @@ Page({
       versions,
       versionIdx: versions.length - 1,
       showOriginal: false,
-      adjustments: {},
-      hasAdjustments: false,
       aiPrompt: '',
+      refImagePath: '',
+      styleFeatureChips: this.buildStyleFeatureChips([]),
       localRegions: [],
       activeRegionId: null,
       isDrawing: false,
-      drawRect: null,
-      selectedPart: this.data.bodyParts[0] ? this.data.bodyParts[0].id : '',
-      currentPartName: this.data.bodyParts[0] ? this.data.bodyParts[0].name : ''
+      drawRect: null
     }, () => {
       this.updateVersionState();
       this.recomputeCanSubmit();
@@ -701,13 +927,13 @@ Page({
 
   // ============ 面板收起/展开 ============
   expandPanel() {
-    this.setData({ editExpanded: true, adjustMode: 'local' }, () => {
+    this.setData({ editExpanded: true, adjustMode: 'ai' }, () => {
       setTimeout(() => this.measureStage(), 320);
     });
   },
   collapsePanel() {
     this.setData({
-      editExpanded: false, isDrawing: false, drawRect: null, aiUseRegion: false,
+      editExpanded: false, isDrawing: false, drawRect: null,
       filterVals: this.defaultFilterVals(), activeFilterVal: 0,
       filterPreviewUrl: '', hasFilter: false
     });
@@ -738,11 +964,23 @@ Page({
   // ============ 模式切换 ============
   switchMode(e) {
     const mode = e.currentTarget.dataset.mode;
-    if (mode === this.data.adjustMode || this.data.generating) return;
+    this.applyMode(mode);
+  },
+
+  // 一句话面板里"去框选"按钮：直接切到局部修改 tab
+  gotoLocalMode() {
+    if (this.data.generating) return;
+    this.applyMode('local');
+  },
+
+  applyMode(mode) {
+    if (!mode || mode === this.data.adjustMode || this.data.generating) return;
+    // 工具入口（改字/抠图/消除）只允许一句话修图 / 局部修改，禁止切到参考图/实时调节
+    if (this.data.toolLocked && mode !== 'ai' && mode !== 'local') return;
     // 离开实时调节模式时清掉未应用的滤镜预览
     const leavingFilter = this.data.adjustMode === 'filter';
     this.setData({
-      adjustMode: mode, isDrawing: false, drawRect: null, aiUseRegion: false,
+      adjustMode: mode, isDrawing: false, drawRect: null,
       filterVals: leavingFilter ? this.defaultFilterVals() : this.data.filterVals,
       activeFilterVal: leavingFilter ? 0 : this.data.activeFilterVal,
       filterPreviewUrl: leavingFilter ? '' : this.data.filterPreviewUrl,
@@ -754,21 +992,68 @@ Page({
     });
   },
 
-  // ============ 一句话改图：指定区域开关 ============
-  toggleAiRegion() {
-    if (this.data.generating) return;
-    const next = !this.data.aiUseRegion;
-    this.setData({ aiUseRegion: next });
-    // 关闭框选时清掉已画的 AI 框，避免无框提交却带残留坐标
-    if (!next && this.data.localRegions.length) {
-      this.setData({ localRegions: [], activeRegionId: null, drawRect: null, isDrawing: false });
-    }
-    setTimeout(() => this.measureStage(), 320);
+  // ============ 参考图风格迁移 ============
+  buildStyleFeatureChips(selected) {
+    const sel = selected || [];
+    return Object.keys(aiService.STYLE_FEATURES).map(key => ({
+      key,
+      label: aiService.STYLE_FEATURES[key].label,
+      on: sel.indexOf(key) !== -1
+    }));
   },
 
-  clearAiRegions() {
-    this.setData({ localRegions: [], activeRegionId: null, drawRect: null, isDrawing: false });
-    this.recomputeCanSubmit();
+  getSelectedStyleFeatures() {
+    return this.data.styleFeatureChips.filter(c => c.on).map(c => c.key);
+  },
+
+  onPickRefImage() {
+    if (this.data.generating) return;
+    chooseImage({ count: 1, allowCamera: true })
+      .then((res) => {
+        const paths = (res.tempFiles || []).map(f => f.tempFilePath).filter(Boolean);
+        if (!paths.length) return;
+        this.setData({ refImagePath: paths[0] }, () => this.recomputeCanSubmit());
+      })
+      .catch((err) => {
+        if (err && err.message === '已取消') return;
+        console.warn('[compare] pick ref image:', err);
+      });
+  },
+
+  onRemoveRefImage() {
+    this.setData({ refImagePath: '' }, () => this.recomputeCanSubmit());
+  },
+
+  onToggleStyleFeature(e) {
+    if (this.data.generating) return;
+    const key = e.currentTarget.dataset.key;
+    const selected = this.getSelectedStyleFeatures();
+    const idx = selected.indexOf(key);
+    if (idx === -1) selected.push(key); else selected.splice(idx, 1);
+    this.setData({ styleFeatureChips: this.buildStyleFeatureChips(selected) }, () => this.recomputeCanSubmit());
+  },
+
+  // ============ 老照片修复 ============
+  buildRestorePrompt(colorize) {
+    let p = '对这张老照片进行专业修复：修复划痕、折痕、霉点、破损和缺失区域；'
+      + '提升清晰度和分辨率，还原模糊的人脸与细节；校正褪色、发黄和偏色，恢复自然真实的色彩；'
+      + '适度降噪去颗粒，增强对比度和层次。严格保持人物的长相、五官、身份、年龄、姿势、服装和画面构图完全不变，'
+      + '只做修复增强，不美化、不换脸、不改变画面内容，结果自然真实。';
+    if (colorize) {
+      p += ' 如果原图是黑白或严重褪色的照片，请为其上色，还原符合年代与场景的自然真实色彩；原本就是彩色的照片则只校正褪色。';
+    }
+    return p;
+  },
+
+  onToggleRestoreColorize() {
+    if (this.data.generating) return;
+    this.setData({ restoreColorize: !this.data.restoreColorize });
+  },
+
+  // switch 自身点击：用事件回传的新值，避免与文字区 toggle 冲突
+  onRestoreColorizeChange(e) {
+    if (this.data.generating) return;
+    this.setData({ restoreColorize: !!e.detail.value });
   },
 
   // ============ 局部编辑：坐标换算 ============
@@ -1018,30 +1303,6 @@ Page({
     this.setData({ localRegions: regions }, () => this.recomputeCanSubmit());
   },
 
-  // ============ 快捷调节 ============
-  selectPart(e) {
-    const id = e.currentTarget.dataset.id;
-    const part = this.data.bodyParts.find(p => p.id === id);
-    this.setData({ selectedPart: id, currentPartName: part ? part.name : '' });
-  },
-  onSliderChange(e) {
-    const value = e.detail.value;
-    const part = this.data.selectedPart;
-    this.updateAdjustments({ ...this.data.adjustments, [part]: value });
-  },
-  onSliderAfter(e) {
-    const value = e.detail.value;
-    if (value === 0) {
-      const a = { ...this.data.adjustments };
-      delete a[this.data.selectedPart];
-      this.updateAdjustments(a);
-    }
-  },
-  updateAdjustments(adjustments) {
-    const has = Object.values(adjustments).some(v => v !== 0);
-    this.setData({ adjustments, hasAdjustments: has }, () => this.recomputeCanSubmit());
-  },
-
   // ============ AI 调节 ============
   onAiPromptInput(e) {
     this.setData({ aiPrompt: e.detail.value }, () => this.recomputeCanSubmit());
@@ -1109,8 +1370,11 @@ Page({
       const pending = this._filterValsPending;
       const src = this.data.displayUrl || (this.data.currentItem && this.data.currentItem.originalUrl);
       if (!src || src.indexOf('http') === 0) return;
-      renderPreview(src, pending, 280).then(url => {
-        if (url && this.data.hasFilter) this.setData({ filterPreviewUrl: url });
+      this.ensureFilterCanvas().then((node) => {
+        if (!node) return;
+        renderPreview(src, pending, node, 280).then(url => {
+          if (url && this.data.hasFilter) this.setData({ filterPreviewUrl: url });
+        });
       });
     }, delay);
   },
@@ -1130,15 +1394,17 @@ Page({
 
   recomputeCanSubmit() {
     let can = false;
-    if (this.data.adjustMode === 'ai') {
+    if (this.data.adjustMode === 'restore') {
+      can = true;   // 老照片修复：有图即可一键修复
+    } else if (this.data.adjustMode === 'ai') {
       can = !!(this.data.aiPrompt || '').trim();
+    } else if (this.data.adjustMode === 'style') {
+      can = !!this.data.refImagePath && this.getSelectedStyleFeatures().length > 0;
     } else if (this.data.adjustMode === 'local') {
       can = this.data.localRegions.length > 0
         && this.data.localRegions.some(r => (r.prompt || '').trim());
     } else if (this.data.adjustMode === 'filter') {
       can = this.data.hasFilter;
-    } else {
-      can = this.data.hasAdjustments;
     }
     if (can !== this.data.canSubmit) this.setData({ canSubmit: can });
   },
@@ -1186,7 +1452,11 @@ Page({
     if (this.data.generating) return;
     const mode = this.data.adjustMode;
     const item = this.data.currentItem;
-    if (!item) return;
+    if (this.data.isBlank || !item) {
+      platform.showToast({ title: '请先上传图片', icon: 'none' });
+      this.onBlankPick();
+      return;
+    }
 
     // 实时调节模式：纯本地 Canvas 处理，不走 AI
     if (mode === 'filter') {
@@ -1194,6 +1464,7 @@ Page({
     }
 
     const aiText = (this.data.aiPrompt || '').trim();
+    const styleFeatures = mode === 'style' ? this.getSelectedStyleFeatures() : [];
     let localPrompt = '';
     if (mode === 'local') {
       const valid = this.data.localRegions.filter(r => (r.prompt || '').trim());
@@ -1207,14 +1478,20 @@ Page({
       ).join('；');
       localPrompt = `请对图片进行以下局部修改：${regionLines}。`
         + `注意：仅修改上述 bbox 标注区域内的像素内容，bbox 以外区域必须逐像素保持与原图完全一致，不得做任何全局调整。`
+        + `框内只按上述要求修改目标内容，修改幅度自然克制、做到要求即可，不做额外美化、不顺手美颜或瘦身；框内人物的长相、五官、表情、姿势，以及服装的款式和颜色，凡要求中未提及的一律保持原样。`
         + `严格禁止：改变画面整体亮度、曝光、对比度、白平衡、色阶、饱和度、伽马值、色温；禁止重新打光、补光、添加闪光灯效果；禁止改变背景色调和光影方向。`
         + `输出图片的曝光参数、色彩分布、明暗直方图必须与参考图一致，仅 bbox 内部允许变化。`;
     }
-    if (mode === 'quick' && !this.data.hasAdjustments) {
-      platform.showToast({ title: '请先调节部位', icon: 'none' }); return;
+    if (mode === 'style') {
+      if (!this.data.refImagePath) {
+        platform.showToast({ title: '请上传风格参考图', icon: 'none' }); return;
+      }
+      if (!styleFeatures.length) {
+        platform.showToast({ title: '请至少勾选一个借鉴特征', icon: 'none' }); return;
+      }
     }
     if (mode === 'ai' && !aiText) {
-      platform.showToast({ title: '请告诉 AI 怎么调节', icon: 'none' }); return;
+      platform.showToast({ title: '请告诉我们你想怎么调', icon: 'none' }); return;
     }
 
     // 参考图始终用最新精修图（没有则用原图）
@@ -1229,23 +1506,35 @@ Page({
     this.startProgressAnim();
 
     try {
-      // AI 模式带框：收集有效框选区域（AI 模式下所有框共用一句话，框本身不需要 prompt）
-      const aiRegionList = (mode === 'ai' && this.data.aiUseRegion)
-        ? this.data.localRegions
-            .filter(r => r.x2 > r.x1 && r.y2 > r.y1)
-            .map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }))
-        : [];
-
-      const result = await aiService.generateEdit({
-        imagePath: refPath,
-        imageUrl: refUrl,
-        adjustments: mode === 'quick' ? this.data.adjustments : {},
-        customPrompt: mode === 'ai' ? aiText : (mode === 'local' ? localPrompt : ''),
-        basePrompt: item.prompt || '',
-        negativePrompt: item.negativePrompt || '',
-        templateId: item.templateId,
-        aiRegions: aiRegionList
-      });
+      let result;
+      if (mode === 'restore') {
+        // 老照片修复：固定专业修复提示词，一键生成
+        result = await aiService.generateEdit({
+          imagePath: refPath,
+          imageUrl: refUrl,
+          rawPrompt: this.buildRestorePrompt(this.data.restoreColorize),
+          rawNegative: '换脸，五官改变，身份变化，陌生人脸，人物年龄明显变化，姿势改变，'
+            + '构图变化，视角变化，新增人物或物体，画面内容篡改，过度美化，磨皮过度，塑料感，'
+            + '色彩夸张不真实，变形，重影，裁切，扩图，水印，文字，畸形结构'
+        });
+      } else if (mode === 'style') {
+        // 参考图风格迁移：原图 + 风格参考图 + 勾选特征，走多图生图
+        result = await aiService.generateStyleTransfer({
+          imagePath: refPath,
+          imageUrl: refUrl,
+          refPath: this.data.refImagePath,
+          features: styleFeatures
+        });
+      } else {
+        result = await aiService.generateEdit({
+          imagePath: refPath,
+          imageUrl: refUrl,
+          customPrompt: mode === 'ai' ? aiText : (mode === 'local' ? localPrompt : ''),
+          basePrompt: item.prompt || '',
+          negativePrompt: item.negativePrompt || '',
+          templateId: item.templateId
+        });
+      }
 
       this.stopProgressAnim();
       this.setData({ genProgress: 100, genProgressText: '100.00' });
@@ -1255,17 +1544,13 @@ Page({
 
       let newUrl = result.url;
 
-      // 区域类编辑（局部编辑 / 一句话带框）都会让 bbox 外亮度漂移，
-      // 用 Canvas 将结果图【框外区域】亮度对齐到参考图，消除全局变亮。
-      const isRegionEdit = mode === 'local' || (mode === 'ai' && aiRegionList.length > 0);
-      if (isRegionEdit) {
+      // 局部编辑会让 bbox 外亮度漂移，用 Canvas 将结果图【框外区域】亮度对齐到参考图，消除全局变亮。
+      if (mode === 'local') {
         const refForMatch = refPath || refUrl;
         // 本次提交的框选区域（归一化 0-999），校正时排除框内像素
-        const editRegions = mode === 'local'
-          ? this.data.localRegions
-              .filter(r => (r.prompt || '').trim())
-              .map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }))
-          : aiRegionList;
+        const editRegions = this.data.localRegions
+          .filter(r => (r.prompt || '').trim())
+          .map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }));
         if (refForMatch && newUrl && newUrl.indexOf('data:') !== 0 && newUrl.indexOf('http') !== 0) {
           try {
             platform.showLoading({ title: '校正亮度...', mask: true });
@@ -1295,6 +1580,11 @@ Page({
         lastPrompt = aiText;
       } else if (mode === 'local' && localPrompt) {
         lastPrompt = localPrompt;
+      } else if (mode === 'style') {
+        const labels = styleFeatures.map(k => aiService.STYLE_FEATURES[k].label).join('、');
+        lastPrompt = '参考图风格迁移：' + labels;
+      } else if (mode === 'restore') {
+        lastPrompt = '老照片修复' + (this.data.restoreColorize ? '（含黑白上色）' : '');
       }
 
       const updatedItem = {
@@ -1302,8 +1592,7 @@ Page({
         resultUrl: newUrl,
         status: TaskStatus.COMPLETED,
         history,
-        lastPrompt,
-        adjustments: { ...(item.adjustments || {}), ...this.data.adjustments }
+        lastPrompt
       };
       storage.updateRecord(item.id, updatedItem);
       const batchItems = this.data.batchItems.map(b => b.id === item.id ? updatedItem : b);
@@ -1316,7 +1605,12 @@ Page({
         versionIdx: versions.length - 1,
         currentItem: updatedItem,
         batchItems,
-        adjustments: {}, hasAdjustments: false, aiPrompt: '',
+        aiPrompt: '',
+        // 老照片修复完成后回到"一句话修图"，方便继续精修；工具引导只首次展示
+        adjustMode: mode === 'restore' ? 'ai' : this.data.adjustMode,
+        toolHint: '',
+        refImagePath: '',
+        styleFeatureChips: this.buildStyleFeatureChips([]),
         localRegions: [], activeRegionId: null, isDrawing: false, drawRect: null
       }, () => {
         this.updateVersionState();
@@ -1360,7 +1654,8 @@ Page({
     platform.showLoading({ title: '处理中...', mask: true });
 
     try {
-      let newUrl = await applyFilters(srcPath, filterVals);
+      const filterNode = await this.ensureFilterCanvas();
+      let newUrl = await applyFilters(srcPath, filterVals, filterNode);
       platform.hideLoading();
       if (!newUrl || newUrl === srcPath) {
         this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });

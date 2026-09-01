@@ -23,7 +23,7 @@
   <view class="processing-mask" wx:if="{{processing}}">
     <view class="processing-card">
       <view class="processing-spinner"></view>
-      <text class="processing-text">AI 处理中... {{progress}}%</text>
+      <text class="processing-text">处理中... {{progress}}%</text>
     </view>
   </view>
 </view>

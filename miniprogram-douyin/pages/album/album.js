@@ -4,7 +4,7 @@ const storage = require('../../utils/storage.js');
 const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/save-image.js');
 
 const TYPE_NAME_MAP = {
-  retouch: 'AI精修',
+  retouch: '智能精修',
   'text-edit': '无痕改字',
   cutout: '智能抠图',
   erase: '智能消除',

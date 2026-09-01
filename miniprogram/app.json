@@ -15,6 +15,8 @@
     "pages/lab/prompt-tester",
     "pages/lab/prompt-history",
     "pages/lab/prompt-history-detail",
+    "pages/promo/promo",
+    "pages/task/task",
     "pages/mine/mine"
   ],
   "window": {

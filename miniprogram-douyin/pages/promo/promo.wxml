@@ -1,0 +1,117 @@
+<view class="page">
+
+  <!-- 分段切换 -->
+  <view class="seg">
+    <view class="seg-item {{tab === 'stitch' ? 'on' : ''}}" bindtap="switchTab" data-tab="stitch">图片拼接</view>
+    <view class="seg-item {{tab === 'copy' ? 'on' : ''}}" bindtap="switchTab" data-tab="copy">种草文案</view>
+  </view>
+
+  <!-- ============ 图片拼接 ============ -->
+  <view class="panel" wx:if="{{tab === 'stitch'}}">
+
+    <!-- 来源切换 -->
+    <view class="src-row">
+      <view class="src-btn {{source === 'record' ? 'on' : ''}}" bindtap="buildPairs">
+        <text class="src-title">从生成记录</text>
+        <text class="src-sub">自动识别原图/精修</text>
+      </view>
+      <view class="src-btn {{source === 'album' ? 'on' : ''}}" bindtap="pickAlbum">
+        <text class="src-title">＋ 从相册选 2 张</text>
+        <text class="src-sub">先原图、后精修图</text>
+      </view>
+    </view>
+
+    <!-- 记录列表（记录模式） -->
+    <scroll-view scroll-x class="rec-list" wx:if="{{source === 'record'}}" enhanced show-scrollbar="{{false}}">
+      <view wx:if="{{pairs.length === 0}}" class="rec-empty">暂无生成记录，先去修几张图吧～</view>
+      <view class="rec-item {{item.id === selectedId ? 'on' : ''}}"
+            wx:for="{{pairs}}" wx:key="id"
+            bindtap="selectPair" data-id="{{item.id}}">
+        <image class="rec-thumb" src="{{item.resultUrl}}" mode="aspectFill"></image>
+      </view>
+    </scroll-view>
+
+    <!-- 双图对比预览：两张照片独立并排，任一张缩放/拖动，另一张同步映射跟随 -->
+    <view class="compare-view" wx:if="{{previewLeft}}"
+          catchtouchstart="onPreviewTouchStart"
+          catchtouchmove="onPreviewTouchMove"
+          catchtouchend="onPreviewTouchEnd"
+          catchtouchcancel="onPreviewTouchEnd">
+      <view class="compare-half">
+        <image class="compare-img" src="{{previewLeft}}" mode="aspectFit"
+               style="transform: translate({{pvTx}}px, {{pvTy}}px) scale({{pvScale}});"></image>
+        <view class="compare-tag">原图</view>
+      </view>
+      <view class="compare-divider"></view>
+      <view class="compare-half">
+        <image class="compare-img" src="{{previewRight}}" mode="aspectFit"
+               style="transform: translate({{pvTx}}px, {{pvTy}}px) scale({{pvScale}});"></image>
+        <view class="compare-tag compare-tag-result">精修图</view>
+      </view>
+    </view>
+    <view class="preview-loading" wx:elif="{{stitching}}">
+      <view class="spinner"></view>
+      <text>正在准备…</text>
+    </view>
+    <view class="preview-empty" wx:else>
+      <text>选择记录或相册图片后开始对比</text>
+    </view>
+    <view class="preview-zoom-tip" wx:if="{{previewLeft}}">
+      <text>双指缩放 · 单指拖动，两图同步联动</text>
+      <text class="preview-reset" wx:if="{{pvScale > 1 || pvTx !== 0 || pvTy !== 0}}" catchtap="resetPreviewView">还原视图</text>
+    </view>
+
+    <!-- 操作行 -->
+    <view class="stitch-actions">
+      <view class="btn-ghost {{source === 'album' ? '' : 'disabled'}}" bindtap="swapImages">⇄ 交换左右</view>
+      <view class="btn-ghost {{stitchedPath ? '' : 'disabled'}}" bindtap="saveStitch">{{saving ? '保存中…' : '↓ 保存到相册'}}</view>
+    </view>
+  </view>
+
+  <!-- ============ 种草文案 ============ -->
+  <view class="panel" wx:if="{{tab === 'copy'}}">
+    <view class="copy-tip">自动生成一条日常种草文案，不满意点"换一条"，可直接复制去发布</view>
+
+    <view class="copy-loading" wx:if="{{copyLoading}}">
+      <view class="spinner"></view>
+      <text>正在写文案…</text>
+    </view>
+
+    <!-- 当前一条文案 -->
+    <view class="copy-card" wx:if="{{!copyLoading && copyText}}">
+      <text class="copy-text" user-select>{{copyText}}</text>
+    </view>
+    <view class="copy-card copy-placeholder" wx:if="{{!copyLoading && !copyText}}">
+      <text>还没有文案，点下方按钮生成～</text>
+    </view>
+
+    <view class="btn-gen {{copyLoading ? 'disabled' : ''}}" bindtap="genCopies">
+      ↻ 换一条文案
+    </view>
+
+    <!-- 文案润色 -->
+    <view class="optimize-box">
+      <view class="optimize-title">✍️ 帮我润色文案</view>
+      <view class="optimize-desc">写几个字，帮你精炼成一句短文案（50 字内）</view>
+      <textarea class="optimize-input" value="{{optimizeInput}}" bindinput="onOptimizeInput"
+                placeholder="例如：老照片修清楚了，好神奇" maxlength="60" auto-height></textarea>
+      <view class="btn-optimize {{optimizing ? 'disabled' : ''}}" bindtap="doOptimize">
+        {{optimizing ? '润色中…' : '✨ 润色并填充'}}
+      </view>
+    </view>
+
+    <view class="btn-copy-primary {{copyText ? '' : 'disabled'}}" bindtap="onCopyText">复制文案</view>
+  </view>
+
+  <!-- ============ 底部：去做任务赚钱 ============ -->
+  <view class="footer">
+    <button class="btn-douyin" bindtap="goTaskEarn" hover-class="btn-douyin-hover">
+      去做任务赚钱
+    </button>
+    <text class="footer-hint">带上拼接图和文案，去接抖音推广任务赚佣金</text>
+  </view>
+
+  <!-- 离屏绘制用的页面 canvas（常驻，不可见；抖音离屏 canvas 无 createImage，必须用页面节点） -->
+  <canvas type="2d" id="stitchCanvas" class="stitch-canvas"></canvas>
+
+</view>

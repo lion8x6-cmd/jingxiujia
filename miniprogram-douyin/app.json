@@ -12,6 +12,11 @@
     "pages/album/album",
     "pages/lab/index",
     "pages/lab/runner",
+    "pages/lab/prompt-tester",
+    "pages/lab/prompt-history",
+    "pages/lab/prompt-history-detail",
+    "pages/promo/promo",
+    "pages/task/task",
     "pages/mine/mine"
   ],
   "window": {
@@ -24,34 +29,44 @@
   "usePrivacyCheck": true,
   "permission": {
     "scope.camera": {
-      "desc": "用于拍摄照片进行AI精修"
+      "desc": "用于拍摄照片进行精修"
     }
   },
   "tabBar": {
-    "custom": true,
     "color": "#999999",
     "selectedColor": "#FE2C55",
     "backgroundColor": "#ffffff",
+    "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/records/records",
-        "text": "生成记录"
+        "text": "生成记录",
+        "iconPath": "images/tabbar/records.png",
+        "selectedIconPath": "images/tabbar/records-active.png"
       },
       {
         "pagePath": "pages/album/album",
-        "text": "云相册"
+        "text": "云相册",
+        "iconPath": "images/tabbar/album.png",
+        "selectedIconPath": "images/tabbar/album-active.png"
       },
       {
         "pagePath": "pages/lab/index",
-        "text": "调试"
+        "text": "调试",
+        "iconPath": "images/tabbar/lab.png",
+        "selectedIconPath": "images/tabbar/lab-active.png"
       },
       {
         "pagePath": "pages/mine/mine",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "images/tabbar/mine.png",
+        "selectedIconPath": "images/tabbar/mine-active.png"
       }
     ]
   }

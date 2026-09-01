@@ -1,0 +1,51 @@
+<view class="page" wx:if="{{record}}">
+  <!-- 图片对比区 -->
+  <view class="image-area">
+    <image class="result-img"
+           src="{{showOriginal ? record.originalPath : record.resultPath}}"
+           mode="widthFix"
+           bindtouchstart="onTouchStart"
+           bindtouchend="onTouchEnd"
+           bindtouchcancel="onTouchEnd"></image>
+    <view class="zoom-btn" catchtap="previewImage">
+      <text class="zoom-icon">⤢</text>
+    </view>
+    <view class="compare-hint" wx:if="{{record.originalPath && record.resultPath}}">
+      长按查看原图
+    </view>
+    <view class="badge {{showOriginal ? 'original' : 'result'}}">
+      {{showOriginal ? '原图' : '精修结果'}}
+    </view>
+  </view>
+
+  <!-- 提示词信息 -->
+  <view class="info-card">
+    <view class="info-row" wx:if="{{record.promptName}}">
+      <text class="info-label">模板</text>
+      <text class="info-value tag">{{record.promptName}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">提示词</text>
+      <text class="info-value prompt-text">{{record.prompt}}</text>
+    </view>
+    <view class="info-row" wx:if="{{record.negativePrompt}}">
+      <text class="info-label">负面词</text>
+      <text class="info-value negative-text">{{record.negativePrompt}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">时间</text>
+      <text class="info-value time">{{record.timeText}}</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-bar">
+    <view class="action-btn" bindtap="saveResult">保存到相册</view>
+    <view class="action-btn" bindtap="reusePrompt">复用此提示词</view>
+    <view class="action-btn danger" bindtap="deleteRecord">删除</view>
+  </view>
+</view>
+
+<view class="empty" wx:else>
+  <text>记录不存在或已删除</text>
+</view>

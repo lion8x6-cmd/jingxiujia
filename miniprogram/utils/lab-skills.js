@@ -443,11 +443,11 @@ const quickRetouchSkill = {
   }
 };
 
-// ============ Skill 5: AI换装换景 ============
+// ============ Skill 5: 换装换景 ============
 
 const changerSkill = {
   id: 'photo-changer',
-  name: 'AI换装换景',
+  name: '换装换景',
   icon: '🎭',
   color: '#D4537E',
   description: '换装 / 换背景 / 风格转换',

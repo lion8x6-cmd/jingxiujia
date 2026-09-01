@@ -6,7 +6,18 @@
         catchtouchmove="onStageTouchMove"
         bindtouchcancel="onStageTouchCancel"
         bindlongpress="onStageLongPress">
-    <image class="stage-img {{imgAnim ? 'anim' : ''}}" style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});" src="{{showOriginal ? currentItem.originalUrl : displayUrl}}" mode="aspectFit" bindload="onImgLoad"></image>
+
+    <!-- 个性化修图空状态：提示上传图片 -->
+    <view class="blank-upload" wx:if="{{isBlank}}" bindtap="onBlankPick">
+      <view class="blank-upload-card">
+        <view class="blank-upload-icon">＋</view>
+        <view class="blank-upload-title">上传要精修的图片</view>
+        <view class="blank-upload-sub">支持从相册选择或拍照，上传后可自由编辑</view>
+        <view class="blank-upload-btn">选择图片</view>
+      </view>
+    </view>
+
+    <image wx:if="{{!isBlank}}" class="stage-img {{imgAnim ? 'anim' : ''}}" style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});" src="{{showOriginal ? currentItem.originalUrl : displayUrl}}" mode="aspectFit" bindload="onImgLoad"></image>
 
     <!-- 实时调节预览叠加层（Canvas 渲染的小图，所见即所得） -->
     <image wx:if="{{filterPreviewUrl && !showOriginal && editExpanded && adjustMode === 'filter'}}"
@@ -14,8 +25,8 @@
            style="transform: translate({{imgTx}}px, {{imgTy}}px) scale({{imgScale}});"
            src="{{filterPreviewUrl}}" mode="aspectFit"></image>
 
-    <!-- 局部编辑选区层（局部编辑模式 / 一句话改图开启指定区域时显示） -->
-    <view class="region-layer" wx:if="{{editExpanded && !showOriginal && !generating && (adjustMode === 'local' || (adjustMode === 'ai' && aiUseRegion))}}">
+    <!-- 局部编辑选区层（局部修改模式显示） -->
+    <view class="region-layer" wx:if="{{editExpanded && !showOriginal && !generating && adjustMode === 'local'}}">
       <!-- 空状态指引 -->
       <block wx:if="{{localRegions.length === 0 && !isDrawing}}">
         <view class="local-guide">
@@ -43,10 +54,10 @@
     </view>
 
     <!-- 左上角：当前版本标签 -->
-    <view class="version-label">{{showOriginal ? '原图（预览）' : versionLabel}}</view>
+    <view class="version-label" wx:if="{{!isBlank}}">{{showOriginal ? '原图（预览）' : versionLabel}}</view>
 
     <!-- 右上角按钮组：查看原图（点按切换/长按预览）/ 删除 -->
-    <view class="stage-top-actions" wx:if="{{!generating}}">
+    <view class="stage-top-actions" wx:if="{{!generating && !isBlank}}">
       <view class="origin-toggle {{showOriginal ? 'active' : ''}}"
             catchtap="toggleOriginal"
             catchlongpress="onBtnLongPress"
@@ -61,15 +72,15 @@
     </view>
 
     <!-- 左右切换批次图片箭头 -->
-    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && (adjustMode === 'local' || (adjustMode === 'ai' && aiUseRegion)))}}" catchtap="goPrev">
+    <view class="nav-arrow nav-left" wx:if="{{isBatch && batchItems.length > 1 && currentIndex > 0 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && adjustMode === 'local')}}" catchtap="goPrev">
       <text>‹</text>
     </view>
-    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && (adjustMode === 'local' || (adjustMode === 'ai' && aiUseRegion)))}}" catchtap="goNext">
+    <view class="nav-arrow nav-right" wx:if="{{isBatch && batchItems.length > 1 && currentIndex < batchItems.length - 1 && !generating && !showOriginal && imgScale <= 1 && !(editExpanded && adjustMode === 'local')}}" catchtap="goNext">
       <text>›</text>
     </view>
 
     <!-- 底部版本控制栏 -->
-    <view class="version-bar" wx:if="{{!generating}}">
+    <view class="version-bar" wx:if="{{!generating && !isBlank}}">
       <view class="ver-nav {{!canGoBack ? 'disabled' : ''}}" catchtap="goVersionBack">
         <text class="ver-nav-ico">‹</text>
       </view>
@@ -104,32 +115,126 @@
 
   <!-- 收起态：编辑图片 + 保存 同一行 -->
   <view class="collapsed-bar" wx:if="{{!editExpanded}}">
-    <button class="btn-edit-expand" bindtap="expandPanel">
-      <text class="edit-ico">✎</text>
-      <text>编辑图片</text>
-    </button>
-    <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
-      <text class="save-inline-ico">↓</text>
-      <text class="save-inline-txt">保存</text>
-    </view>
+    <block wx:if="{{isBlank}}">
+      <button class="btn-blank-pick" bindtap="onBlankPick">
+        <text class="blank-pick-ico">＋</text>
+        <text>选择图片开始编辑</text>
+      </button>
+    </block>
+    <block wx:else>
+      <button class="btn-edit-expand" bindtap="expandPanel">
+        <text class="edit-ico">✎</text>
+        <text>编辑图片</text>
+      </button>
+      <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
+        <text class="save-inline-ico">↓</text>
+        <text class="save-inline-txt">保存</text>
+      </view>
+    </block>
   </view>
 
   <!-- 展开态：编辑面板 -->
   <view class="edit-panel {{editExpanded ? 'show' : ''}}" wx:if="{{editExpanded}}">
-    <!-- 模式切换：局部编辑 / 快捷调节 / 一句话改图 -->
-    <view class="mode-tabs">
-      <view class="mode-tab {{adjustMode === 'local' ? 'on' : ''}}" bindtap="switchMode" data-mode="local">局部编辑</view>
-      <view class="mode-tab {{adjustMode === 'quick' ? 'on' : ''}}" bindtap="switchMode" data-mode="quick">快捷调节</view>
-      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">一句话</view>
-      <view class="mode-tab {{adjustMode === 'filter' ? 'on' : ''}}" bindtap="switchMode" data-mode="filter">实时调节</view>
+    <!-- 模式切换：老照片修复无 tab；改字/抠图/消除工具只显示「一句话修图」「局部修改」；普通入口全量 -->
+    <view class="mode-tabs" wx:if="{{adjustMode !== 'restore'}}">
+      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">一句话修图</view>
+      <block wx:if="{{!toolLocked}}">
+        <view class="mode-tab {{adjustMode === 'style' ? 'on' : ''}}" bindtap="switchMode" data-mode="style">参考图</view>
+      </block>
+      <view class="mode-tab {{adjustMode === 'local' ? 'on' : ''}}" bindtap="switchMode" data-mode="local">局部修改</view>
+      <block wx:if="{{!toolLocked}}">
+        <view class="mode-tab {{adjustMode === 'filter' ? 'on' : ''}}" bindtap="switchMode" data-mode="filter">实时调节</view>
+      </block>
     </view>
 
-    <!-- 局部编辑面板 -->
+    <!-- 一句话修图面板 -->
+    <view class="ai-panel" hidden="{{adjustMode !== 'ai'}}">
+      <!-- 局部修改引导条：点我去框选 -->
+      <view class="local-entry" bindtap="gotoLocalMode" hover-class="local-entry-hover" hover-stay-time="80">
+        <text class="local-entry-icon">🎯</text>
+        <view class="local-entry-text">
+          <text class="local-entry-title">只想改某一处？</text>
+          <text class="local-entry-desc">框出手脸、天空，指哪改哪，更精准</text>
+        </view>
+        <text class="local-entry-arrow">去框选 ›</text>
+      </view>
+
+      <view class="ai-tip">{{aiTip}}</view>
+      <textarea class="ai-input"
+                placeholder="{{aiPlaceholder}}"
+                placeholder-class="ai-placeholder"
+                value="{{aiPrompt}}"
+                bindinput="onAiPromptInput"
+                maxlength="200"
+                auto-height
+                show-confirm-bar="{{false}}"
+                adjust-position="{{true}}"/>
+      <view class="ai-quick">
+        <view class="ai-quick-chip" wx:for="{{aiChips}}" wx:key="text"
+              bindtap="appendQuickPrompt" data-text="{{item.text}}">{{item.label}}</view>
+      </view>
+    </view>
+
+    <!-- 参考图面板 -->
+    <view class="style-panel" hidden="{{adjustMode !== 'style'}}">
+      <view class="style-tip">上传一张喜欢的参考图，勾选要借鉴的风格，自动把它套到你的照片上（人物不变）</view>
+
+      <!-- 参考图上传区 -->
+      <view class="ref-upload" wx:if="{{!refImagePath}}" bindtap="onPickRefImage" hover-class="ref-upload-hover" hover-stay-time="80">
+        <text class="ref-upload-icon">＋</text>
+        <text class="ref-upload-text">上传风格参考图</text>
+        <text class="ref-upload-sub">从相册选一张你喜欢色调/氛围的图</text>
+      </view>
+      <view class="ref-preview" wx:else>
+        <image class="ref-preview-img" src="{{refImagePath}}" mode="aspectFill"></image>
+        <view class="ref-preview-del" catchtap="onRemoveRefImage">×</view>
+        <view class="ref-preview-change" catchtap="onPickRefImage">换一张</view>
+      </view>
+
+      <!-- 特征勾选 -->
+      <view class="style-feature-label">借鉴哪些风格？<text class="style-feature-hint">（可多选）</text></view>
+      <view class="style-features">
+        <view class="style-feature {{item.on ? 'on' : ''}}"
+              wx:for="{{styleFeatureChips}}" wx:key="key"
+              bindtap="onToggleStyleFeature" data-key="{{item.key}}">
+          <view class="style-feature-check {{item.on ? 'on' : ''}}">{{item.on ? '✓' : ''}}</view>
+          <text class="style-feature-name">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 老照片修复面板（仅工具入口进入，无 tab） -->
+    <view class="restore-panel" hidden="{{adjustMode !== 'restore'}}">
+      <view class="restore-head">
+        <text class="restore-icon">修</text>
+        <view class="restore-head-text">
+          <text class="restore-title">老照片一键修复</text>
+          <text class="restore-sub">自动完成，无需任何操作</text>
+        </view>
+      </view>
+      <view class="restore-list">
+        <view class="restore-item"><text class="restore-dot">✓</text><text>修复划痕、折痕、霉点、破损</text></view>
+        <view class="restore-item"><text class="restore-dot">✓</text><text>模糊人脸与细节增强、提升清晰度</text></view>
+        <view class="restore-item"><text class="restore-dot">✓</text><text>校正褪色发黄，恢复自然色彩</text></view>
+        <view class="restore-item"><text class="restore-dot">✓</text><text>降噪去颗粒，人物长相姿势完全不变</text></view>
+      </view>
+      <view class="restore-switch-row">
+        <view class="restore-switch-text" bindtap="onToggleRestoreColorize" hover-class="restore-switch-hover" hover-stay-time="60">
+          <text class="restore-switch-name">黑白照片自动上色</text>
+          <text class="restore-switch-desc">关闭则只修复不上色（彩色老照片不受影响）</text>
+        </view>
+        <switch checked="{{restoreColorize}}" disabled="{{generating}}" color="#FE2C55" bindchange="onRestoreColorizeChange"/>
+      </view>
+    </view>
+
+    <!-- 局部修改面板 -->
     <view class="local-panel" hidden="{{adjustMode !== 'local'}}">
+      <!-- 工具入口引导：改字 / 消除 -->
+      <view class="tool-hint" wx:if="{{toolHint}}">💡 {{toolHint}}</view>
       <!-- 空状态指引 -->
       <view class="local-guide-card" wx:if="{{localRegions.length === 0}}">
         <view class="guide-step"><text class="step-num">1</text><text class="step-text">在图片上拖动手指，框选要修改的区域</text></view>
-        <view class="guide-step"><text class="step-num">2</text><text class="step-text">输入修改指令，例如：磨皮美颜、换成卷发</text></view>
+        <view class="guide-step"><text class="step-num">2</text><text class="step-text">{{localExample}}</text></view>
         <view class="guide-step"><text class="step-num">3</text><text class="step-text">可继续添加多个区域，或直接提交生成</text></view>
       </view>
 
@@ -142,7 +247,7 @@
             <text class="region-card-index">区域 {{index + 1}}</text>
             <text class="region-card-del" catchtap="deleteRegion" data-id="{{item.id}}">删除</text>
           </view>
-          <input class="region-card-input" placeholder="输入修改指令，如：磨皮美颜"
+          <input class="region-card-input" placeholder="{{regionPlaceholder}}"
                  value="{{item.prompt}}" data-id="{{item.id}}"
                  bindinput="onRegionPromptInput" maxlength="100"/>
         </view>
@@ -152,69 +257,9 @@
             bindtap="addNewRegion">+ 继续框选新区域</view>
     </view>
 
-    <!-- 快捷调节面板 -->
-    <view class="adjust-panel" hidden="{{adjustMode !== 'quick'}}">
-      <scroll-view scroll-x class="parts-scroll" enhanced show-scrollbar="{{false}}">
-        <view class="part-chip {{selectedPart === item.id ? 'active' : ''}}"
-              wx:for="{{bodyParts}}" wx:key="id"
-              bindtap="selectPart" data-id="{{item.id}}">
-          <text class="part-name">{{item.name}}</text>
-          <text class="part-value" wx:if="{{adjustments[item.id]}}">
-            {{adjustments[item.id] > 0 ? '+' : ''}}{{adjustments[item.id]}}
-          </text>
-        </view>
-      </scroll-view>
-
-      <view class="slider-row" wx:if="{{selectedPart}}">
-        <text class="slider-label">{{currentPartName}}</text>
-        <view class="slider-wrap">
-          <dual-slider value="{{adjustments[selectedPart] || 0}}" bind:change="onSliderChange" bind:afterchange="onSliderAfter"/>
-        </view>
-        <text class="slider-val {{(adjustments[selectedPart]||0) < 0 ? 'neg' : (adjustments[selectedPart]||0) > 0 ? 'pos' : ''}}">
-          {{(adjustments[selectedPart]||0) > 0 ? '+' : ''}}{{adjustments[selectedPart] || 0}}
-        </text>
-      </view>
-    </view>
-
-    <!-- 一句话改图面板 -->
-    <view class="ai-panel" hidden="{{adjustMode !== 'ai'}}">
-      <!-- 指定区域开关 -->
-      <view class="ai-region-toggle" bindtap="toggleAiRegion">
-        <view class="ai-region-toggle-left">
-          <text class="ai-region-toggle-icon">🎯</text>
-          <view class="ai-region-toggle-text">
-            <text class="ai-region-toggle-title">指定修改区域</text>
-            <text class="ai-region-toggle-desc">改具体部位/物体时开启，在图上框选更精准</text>
-          </view>
-        </view>
-        <switch checked="{{aiUseRegion}}" color="#FE2C55" catchtap="toggleAiRegion"/>
-      </view>
-      <view class="ai-region-hint" wx:if="{{aiUseRegion}}">
-        <text wx:if="{{localRegions.length === 0}}">已开启：在图片上拖动手指，框出要修改的区域（如手臂、天空），可画多个框</text>
-        <text wx:else>已框选 {{localRegions.length}} 个区域，指令只作用于框内；<text class="ai-region-clear" catchtap="clearAiRegions">清空</text></text>
-      </view>
-
-      <view class="ai-tip">告诉 AI 你想怎么改，例如："皮肤再白皙一点，背景虚化一些"</view>
-      <textarea class="ai-input"
-                placeholder="用一句话描述你想要的效果..."
-                placeholder-class="ai-placeholder"
-                value="{{aiPrompt}}"
-                bindinput="onAiPromptInput"
-                maxlength="200"
-                auto-height
-                show-confirm-bar="{{false}}"
-                adjust-position="{{true}}"/>
-      <view class="ai-quick">
-        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="皮肤更白皙通透">皮肤更白皙</view>
-        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="背景虚化，突出人物">背景虚化</view>
-        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="增强光影质感，更有电影感">电影感</view>
-        <view class="ai-quick-chip" bindtap="appendQuickPrompt" data-text="牙齿更白，笑容更自然">美白牙齿</view>
-      </view>
-    </view>
-
     <!-- 实时调节面板（本地处理，拖动即预览，不耗 AI） -->
     <view class="filter-panel" hidden="{{adjustMode !== 'filter'}}">
-      <view class="filter-tip">拖动滑块即时预览，效果本地处理、不消耗 AI 次数</view>
+      <view class="filter-tip">拖动滑块即时预览，效果本地处理、不消耗次数</view>
 
       <!-- 调节项 chip 横滑栏（绿点表示该项已调节） -->
       <scroll-view scroll-x class="filter-chips" enhanced show-scrollbar="{{false}}">
@@ -246,7 +291,8 @@
     <view class="edit-btn-row">
       <view class="btn-collapse" bindtap="collapsePanel">收起</view>
       <button class="btn-submit {{!canSubmit || generating ? 'disabled' : ''}}" bindtap="submitAdjust" disabled="{{!canSubmit || generating}}">
-        <text wx:if="{{adjustMode === 'filter' && !generating}}">应用调节</text>
+        <text wx:if="{{adjustMode === 'restore' && !generating}}">一键修复</text>
+        <text wx:elif="{{adjustMode === 'filter' && !generating}}">应用调节</text>
         <text wx:elif="{{!generating}}">提交修改并生成</text>
         <text wx:else>处理中 {{genProgressText}}%</text>
       </button>
@@ -300,4 +346,7 @@
     </scroll-view>
     <view class="prompt-modal-close" bindtap="closePrompt" hover-class="prompt-modal-close-hover">知道了</view>
   </view>
+
+  <!-- 实时调节本地处理用的页面 canvas（常驻隐藏；抖音离屏 canvas 无 createImage，必须用页面节点） -->
+  <canvas type="2d" id="filterCanvas" class="filter-canvas"></canvas>
 </view>

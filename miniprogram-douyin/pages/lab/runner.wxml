@@ -153,7 +153,7 @@
       <image class="result-image" src="{{resultUrl}}" mode="aspectFit" wx:if="{{resultUrl}}"></image>
       <view class="result-loading" wx:if="{{generating && !resultUrl}}">
         <view class="loading-spinner"></view>
-        <text class="loading-text">AI 正在生成中...</text>
+        <text class="loading-text">正在生成中...</text>
       </view>
     </view>
     <view class="result-actions" wx:if="{{resultUrl}}">

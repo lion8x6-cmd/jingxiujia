@@ -1,4 +1,5 @@
 // 本地存储管理 - 生成记录、云相册、7天销毁
+const { persistLocalImage } = require('./persist-image.js');
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const FAILED_CLEANUP = 24 * 60 * 60 * 1000;
@@ -16,6 +17,11 @@ function addRecord(record) {
   record.id = record.id || ('rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
   record.createdAt = record.createdAt || Date.now();
   record.expireAt = record.createdAt + SEVEN_DAYS;
+  // 持久化原图：chooseImage/拍照得到的是临时文件，小程序重启后会被清理，
+  // 会导致历史记录重加载后拼接/编辑报"图片加载失败"。复制到用户目录（重启不丢）。
+  if (record.originalUrl) {
+    record.originalUrl = persistLocalImage(record.originalUrl);
+  }
   records.unshift(record);
   saveRecords(records);
   return record;

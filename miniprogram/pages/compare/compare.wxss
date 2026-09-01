@@ -577,53 +577,171 @@
   box-sizing: border-box;
 }
 
-/* 一句话改图：指定区域开关 */
-.ai-region-toggle {
+/* 一句话修图：局部修改引导条（点我去框选） */
+.local-entry {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 16rpx 20rpx;
   background: #f0faf4;
+  border: 2rpx solid rgba(7, 193, 96, 0.25);
   border-radius: 14rpx;
-  margin-bottom: 14rpx;
+  margin-bottom: 16rpx;
 }
-.ai-region-toggle-left {
-  display: flex;
-  align-items: center;
-}
-.ai-region-toggle-icon {
+.local-entry-hover { background: #e2f6eb; }
+.local-entry-icon {
   font-size: 34rpx;
   margin-right: 14rpx;
 }
-.ai-region-toggle-text {
+.local-entry-text {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
-.ai-region-toggle-title {
+.local-entry-title {
   font-size: 26rpx;
   color: #1a1a1a;
   font-weight: 600;
   line-height: 1.3;
 }
-.ai-region-toggle-desc {
+.local-entry-desc {
   font-size: 20rpx;
-  color: #999;
+  color: #8a8f99;
   margin-top: 4rpx;
   line-height: 1.3;
 }
-.ai-region-hint {
+.local-entry-arrow {
+  font-size: 24rpx;
+  color: #07C160;
+  font-weight: 500;
+  margin-left: 12rpx;
+}
+
+/* 参考图面板 */
+.style-panel {
+  background: #fff;
+  padding: 20rpx 24rpx 16rpx;
+  box-sizing: border-box;
+}
+.style-tip {
   font-size: 22rpx;
-  color: #07c160;
-  background: #f0faf4;
-  border-radius: 10rpx;
-  padding: 12rpx 16rpx;
-  margin-bottom: 14rpx;
+  color: #999;
+  margin-bottom: 16rpx;
   line-height: 1.5;
 }
-.ai-region-clear {
-  color: #e24b4a;
-  margin-left: 8rpx;
+.ref-upload {
+  border: 3rpx dashed #cdd2d8;
+  border-radius: 16rpx;
+  background: #fafbfc;
+  padding: 44rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+.ref-upload-hover { background: #f2f4f6; }
+.ref-upload-icon {
+  font-size: 56rpx;
+  color: #07C160;
+  font-weight: 300;
+  line-height: 1;
+}
+.ref-upload-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  margin-top: 16rpx;
+}
+.ref-upload-sub {
+  font-size: 22rpx;
+  color: #9aa0a6;
+  margin-top: 8rpx;
+}
+.ref-preview {
+  position: relative;
+  width: 100%;
+  height: 280rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+.ref-preview-img {
+  width: 100%;
+  height: 100%;
+}
+.ref-preview-del {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 30rpx;
+}
+.ref-preview-change {
+  position: absolute;
+  bottom: 12rpx;
+  right: 12rpx;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 8rpx 22rpx;
+  border-radius: 24rpx;
+}
+.style-feature-label {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+  margin: 24rpx 0 14rpx;
+}
+.style-feature-hint {
+  font-size: 22rpx;
+  color: #9aa0a6;
+  font-weight: 400;
+}
+.style-features {
+  display: flex;
+  flex-wrap: wrap;
+}
+.style-feature {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 24rpx;
+  border-radius: 32rpx;
+  border: 2rpx solid #ebedf0;
+  background: #fff;
+  margin: 0 16rpx 16rpx 0;
+}
+.style-feature.on {
+  background: #E1F5EE;
+  border-color: #07C160;
+}
+.style-feature-check {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  border: 2rpx solid #cdd2d8;
+  color: #fff;
+  font-size: 22rpx;
+  text-align: center;
+  line-height: 30rpx;
+  margin-right: 12rpx;
+  box-sizing: border-box;
+}
+.style-feature-check.on {
+  background: #07C160;
+  border-color: #07C160;
+}
+.style-feature-name {
+  font-size: 26rpx;
+  color: #333;
+}
+.style-feature.on .style-feature-name {
+  color: #0F6E56;
+  font-weight: 500;
+}
+
 .ai-tip {
   font-size: 22rpx;
   color: #999;
@@ -1124,4 +1242,108 @@
   border: 2rpx dashed #07C160;
   border-radius: 12rpx;
   margin-top: 8rpx;
+}
+
+/* ============ 工具入口引导提示（改字 / 消除） ============ */
+.tool-hint {
+  background: #fff8ec;
+  border: 2rpx solid rgba(255, 168, 46, 0.35);
+  color: #b26a00;
+  font-size: 23rpx;
+  line-height: 1.55;
+  border-radius: 14rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 16rpx;
+}
+
+/* ============ 老照片修复面板 ============ */
+.restore-panel {
+  background: #fff;
+  padding: 20rpx 24rpx 16rpx;
+  box-sizing: border-box;
+}
+.restore-head {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin-bottom: 20rpx;
+}
+.restore-icon {
+  width: 76rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  text-align: center;
+  border-radius: 18rpx;
+  background: #07C160;
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.restore-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.restore-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+}
+.restore-sub {
+  font-size: 23rpx;
+  color: #999;
+}
+.restore-list {
+  background: #f6fbf7;
+  border: 2rpx solid rgba(7, 193, 96, 0.2);
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+.restore-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 24rpx;
+  color: #555;
+  line-height: 1.5;
+  padding: 7rpx 0;
+}
+.restore-dot {
+  width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #07C160;
+  color: #fff;
+  font-size: 20rpx;
+  flex-shrink: 0;
+}
+.restore-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  background: #F7F8FA;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+}
+.restore-switch-hover { opacity: 0.8; }
+.restore-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  flex: 1;
+}
+.restore-switch-name {
+  font-size: 27rpx;
+  color: #222;
+  font-weight: 500;
+}
+.restore-switch-desc {
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.4;
 }

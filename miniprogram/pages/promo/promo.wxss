@@ -1,0 +1,350 @@
+page {
+  background: #f5f6f8;
+}
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 24rpx 180rpx;
+}
+
+/* 隐藏的拼接画布：移出屏幕但保持已渲染（display:none 会导致节点取不到） */
+.stitch-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 100px;
+  height: 100px;
+}
+
+/* 分段切换 */
+.seg {
+  display: flex;
+  background: #eceef1;
+  border-radius: 16rpx;
+  padding: 6rpx;
+  margin-bottom: 24rpx;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  font-size: 27rpx;
+  color: #666;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  transition: all 0.15s;
+}
+.seg-item.on {
+  background: #fff;
+  color: #07C160;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.panel {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx 24rpx;
+}
+
+/* 来源切换 */
+.src-row {
+  display: flex;
+  margin-bottom: 24rpx;
+}
+.src-btn {
+  flex: 1;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 16rpx;
+  padding: 22rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+.src-btn + .src-btn { margin-left: 20rpx; }
+.src-btn.on {
+  border-color: #07C160;
+  background: #f6fbf7;
+}
+.src-title {
+  font-size: 27rpx;
+  color: #222;
+  font-weight: 500;
+}
+.src-btn.on .src-title { color: #07C160; }
+.src-sub {
+  font-size: 20rpx;
+  color: #9aa0a6;
+  margin-top: 6rpx;
+}
+
+/* 记录横滑列表 */
+.rec-list {
+  white-space: nowrap;
+  margin-bottom: 24rpx;
+  min-height: 120rpx;
+}
+.rec-item {
+  display: inline-block;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 14rpx;
+  overflow: hidden;
+  margin-right: 16rpx;
+  border: 4rpx solid transparent;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+.rec-item.on { border-color: #07C160; }
+.rec-thumb {
+  width: 100%;
+  height: 100%;
+}
+.rec-empty {
+  display: inline-block;
+  font-size: 24rpx;
+  color: #9aa0a6;
+  line-height: 120rpx;
+}
+
+/* 双图对比预览（两图独立并排，手势联动） */
+.compare-view {
+  background: #f0f1f3;
+  border-radius: 16rpx;
+  height: 560rpx;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  touch-action: none;
+}
+.compare-half {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafbfc;
+}
+.compare-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform-origin: center center;
+  transition: transform 0.08s ease-out;
+  will-change: transform;
+}
+.compare-divider {
+  width: 2rpx;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+.compare-tag {
+  position: absolute;
+  top: 14rpx;
+  left: 14rpx;
+  z-index: 2;
+  font-size: 20rpx;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  pointer-events: none;
+}
+.compare-tag-result {
+  background: #07C160;
+}
+.preview-zoom-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx;
+  font-size: 21rpx;
+  color: #b6b9bf;
+}
+.preview-reset {
+  color: #07C160;
+  font-size: 22rpx;
+}
+.preview-loading,
+.preview-empty,
+.copy-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9aa0a6;
+  font-size: 24rpx;
+  padding: 60rpx 0;
+  min-height: 360rpx;
+}
+.preview-loading .spinner,
+.copy-loading .spinner { margin-bottom: 16rpx; }
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 5rpx solid #e5e7eb;
+  border-top-color: #07C160;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 拼接操作行 */
+.stitch-actions {
+  display: flex;
+  margin-top: 24rpx;
+}
+.btn-ghost {
+  flex: 1;
+  text-align: center;
+  font-size: 27rpx;
+  color: #07C160;
+  border: 2rpx solid #07C160;
+  border-radius: 44rpx;
+  padding: 20rpx 0;
+  box-sizing: border-box;
+}
+.btn-ghost + .btn-ghost { margin-left: 20rpx; }
+.btn-ghost.disabled {
+  color: #b6b9bf;
+  border-color: #e0e2e6;
+}
+
+/* 文案 */
+.copy-tip {
+  font-size: 24rpx;
+  color: #9aa0a6;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+}
+/* 文案卡片 */
+.copy-card {
+  display: flex;
+  align-items: flex-start;
+  background: #fafbfc;
+  border: 2rpx solid #eceef1;
+  border-radius: 16rpx;
+  padding: 24rpx 22rpx;
+  margin-bottom: 18rpx;
+  box-sizing: border-box;
+}
+.copy-placeholder {
+  display: block;
+  color: #b6b9bf;
+  font-size: 25rpx;
+  text-align: center;
+  padding: 60rpx 24rpx;
+}
+.copy-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #2b2b2b;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.btn-gen {
+  margin-top: 10rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #07C160;
+  background: #fff;
+  border: 2rpx solid #07C160;
+  border-radius: 44rpx;
+  padding: 20rpx 0;
+  font-weight: 500;
+}
+.btn-gen.disabled { opacity: 0.5; }
+
+/* 文案润色区 */
+.optimize-box {
+  margin-top: 30rpx;
+  background: #f7f8fa;
+  border-radius: 16rpx;
+  padding: 24rpx 22rpx;
+}
+.optimize-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #222;
+}
+.optimize-desc {
+  font-size: 22rpx;
+  color: #9aa0a6;
+  margin-top: 6rpx;
+  line-height: 1.5;
+}
+.optimize-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-top: 18rpx;
+  font-size: 27rpx;
+  color: #2b2b2b;
+  line-height: 1.6;
+  min-height: 88rpx;
+}
+.btn-optimize {
+  margin-top: 18rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #fff;
+  background: #07C160;
+  border-radius: 44rpx;
+  padding: 20rpx 0;
+  font-weight: 500;
+}
+.btn-optimize.disabled { opacity: 0.5; }
+
+/* 复制文案主按钮 */
+.btn-copy-primary {
+  margin-top: 30rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #fff;
+  background: #07C160;
+  border-radius: 44rpx;
+  padding: 24rpx 0;
+  font-weight: 600;
+}
+.btn-copy-primary.disabled {
+  background: #d9dbe0;
+}
+
+/* 底部去做任务 */
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  padding: 16rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.btn-douyin {
+  width: 100%;
+  background: #161823;
+  color: #fff;
+  font-size: 31rpx;
+  font-weight: 600;
+  border-radius: 48rpx;
+  padding: 22rpx 0;
+  border: none;
+  line-height: 1.4;
+}
+.btn-douyin::after { border: none; }
+.btn-douyin.disabled { opacity: 0.5; }
+.footer-hint {
+  font-size: 20rpx;
+  color: #b6b9bf;
+  margin-top: 10rpx;
+}

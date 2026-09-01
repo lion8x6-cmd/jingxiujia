@@ -478,6 +478,8 @@ async function generateEdit(options) {
     negativePrompt = '',
     templateId,
     aiRegions = null,   // AI 模式下用户框选的区域 [{x1,y1,x2,y2}]（0-999），有值时指令只作用于框内
+    rawPrompt = '',     // 固定专业提示词（如老照片修复）：传入则直接使用，不套模板/包装器
+    rawNegative = '',   // 配套固定负面词
     signal   // 取消令牌
   } = options;
 
@@ -542,7 +544,12 @@ async function generateEdit(options) {
   // 导致局部修改后画面整体亮度漂移。局部模式改用专用的极简负面词，只禁止结构性破坏。
   const isLocalEdit = userInstruction.indexOf('<bbox>') !== -1;
 
-  if (userInstruction) {
+  // 固定专业提示词（老照片修复等一键工具）：直接使用，不套模板、不套包装器
+  const isRawPrompt = !!(rawPrompt || '').trim();
+
+  if (isRawPrompt) {
+    prompt = rawPrompt.trim();
+  } else if (userInstruction) {
     if (isLocalEdit) {
       // 局部编辑 / AI带框：compare 侧已拼好 bbox 坐标 + 区域外锁定约束，直接使用
       prompt = userInstruction;
@@ -582,9 +589,10 @@ async function generateEdit(options) {
     watermark: ARK_CONFIG.watermark
   };
   if (imageRef) body.image = imageRef;
-  // 负面词选择：局部/AI带框 → LOCAL_EDIT_NEGATIVE；AI无框 → AI_GLOBAL_NEGATIVE；其他（快捷调节/首次精修）→ 模板负面词
+  // 负面词选择：固定工具(rawPrompt) → rawNegative；局部/AI带框 → LOCAL；AI无框 → AI_GLOBAL；其他 → 模板负面词
   let effectiveNegative = tplNegative;
-  if (isLocalEdit) effectiveNegative = LOCAL_EDIT_NEGATIVE;
+  if (isRawPrompt) effectiveNegative = rawNegative;
+  else if (isLocalEdit) effectiveNegative = LOCAL_EDIT_NEGATIVE;
   else if (userInstruction) effectiveNegative = AI_GLOBAL_NEGATIVE;
   if (effectiveNegative) body.negative_prompt = effectiveNegative;
 
@@ -604,6 +612,138 @@ async function generateEdit(options) {
   }
 }
 
+// ============ 参考图风格迁移（Seedream 多图生图）============
+
+// 可借鉴的风格特征：key → 用户可见标签 + 迁移提示词
+// 设计原则：每一项都是"参考图里客观存在、模型可观察提炼"的属性；
+// 凡"需要凭空生成的命名效果（胶片/CCD/黑白）、几何身份类（瘦身/姿势/构图）"都不放。
+const STYLE_FEATURES = {
+  tone: {
+    label: '色调',
+    prompt: '色调：参考第二张图的整体色彩风格、冷暖倾向和调色感觉，把相似的色调应用到第一张图'
+  },
+  light: {
+    label: '光影氛围',
+    prompt: '光影氛围：参考第二张图的光线氛围、明暗调子和情绪光感，让第一张图呈现相似的光影氛围'
+  },
+  texture: {
+    label: '画面质感',
+    prompt: '画面质感：参考第二张图实际呈现的成像质感（清晰或柔和、有无颗粒感、数码或胶片味道），只模仿第二张图真实具备的质感，不要凭空添加第二张图没有的效果'
+  },
+  background: {
+    label: '背景环境',
+    prompt: '背景环境：参考第二张图的背景环境风格、场景氛围和背景虚化程度，应用到第一张图的背景'
+  },
+  skin: {
+    label: '皮肤质感',
+    prompt: '皮肤质感：参考第二张图人物皮肤的通透度、细腻度和光泽感，只迁移肤质表现，不改变第一张图人物的五官和脸型'
+  },
+  makeup: {
+    label: '妆容',
+    prompt: '妆容：参考第二张图人物的妆容风格（口红色调、眼妆、修容妆感），把相似的妆面应用到第一张图人物，只上妆、不改变五官形状和脸型'
+  }
+};
+
+function buildStyleTransferPrompt(features) {
+  const valid = (features || []).filter(k => STYLE_FEATURES[k]);
+  const featureLines = valid.map(k => '· ' + STYLE_FEATURES[k].prompt).join('\n');
+  return '这里有两张图：第一张图是需要精修的原图，第二张图是风格参考图。请以第一张图为基础精修，第二张图仅作为风格参考，借鉴以下方面：\n'
+    + featureLines + '\n'
+    + '严格要求：只迁移上述明确列出的风格特征；第一张图人物的身份、长相、五官、脸型、发型发色、身材体型、姿势动作、手势、服装款式与颜色、构图和拍摄视角必须完全保持不变，人物不能变成第二张图里的人。未列出的方面一律保持第一张图原样。风格迁移要自然协调、幅度克制，与第一张图的人物和画面融合真实。';
+}
+
+// 准备单张图片为 base64（本地路径压缩读取 / 远程 URL 下载读取）
+async function prepareImageRef(imagePath, imageUrl) {
+  if (imagePath && !isRemoteUrl(imagePath)) {
+    return await fileToBase64(imagePath);
+  } else if (imageUrl && isRemoteUrl(imageUrl)) {
+    return await downloadToBase64(imageUrl);
+  } else if (imagePath) {
+    return await fileToBase64(imagePath);
+  } else if (imageUrl) {
+    return await fileToBase64(imageUrl);
+  }
+  return '';
+}
+
+// 参考图风格迁移：传入原图 + 一张风格参考图，按勾选特征迁移
+// options:
+//   imagePath/imageUrl  原图（要精修的照片）
+//   refPath/refUrl      风格参考图
+//   features            勾选的特征 key 数组（见 STYLE_FEATURES）
+//   signal              取消令牌
+async function generateStyleTransfer(options) {
+  const {
+    imagePath, imageUrl,
+    refPath = '', refUrl = '',
+    features = [],
+    signal
+  } = options;
+
+  if (!USE_REAL_ARK) {
+    await mockDelay(2500);
+    return { url: imageUrl || imagePath, taskId: 'mock_style_' + Date.now() };
+  }
+
+  const validFeatures = (features || []).filter(k => STYLE_FEATURES[k]);
+  if (!validFeatures.length) {
+    throw new Error('请至少选择一个要借鉴的特征');
+  }
+
+  let originRef = '';
+  let styleRef = '';
+  try {
+    originRef = await prepareImageRef(imagePath, imageUrl);
+  } catch (e) {
+    throw new Error('准备原图失败: ' + e.message);
+  }
+  try {
+    styleRef = await prepareImageRef(refPath, refUrl);
+  } catch (e) {
+    throw new Error('准备参考图失败: ' + e.message);
+  }
+  if (!originRef) throw new Error('原图读取失败');
+  if (!styleRef) throw new Error('参考图读取失败');
+
+  if (signal && signal.cancelled) {
+    const err = new Error('abort'); err.cancelled = true; throw err;
+  }
+
+  const prompt = buildStyleTransferPrompt(validFeatures);
+
+  // 风格迁移专用负面词：重点防止"人物变成参考图里的人"、身份/姿势/服装/构图漂移
+  const STYLE_TRANSFER_NEGATIVE = '换脸，人物变成参考图里的人，五官改变，脸型改变，身份变化，陌生人脸，'
+    + '发型发色改变，姿势改变，动作改变，手势变化，身材变形，肢体增多或减少，多腿多手臂，手指畸形，'
+    + '服装款式改变，服装颜色改变，穿着方式改变，构图变化，视角变化，裁切，扩图，'
+    + '背景人物变形，文字错乱，水印，畸形结构，画面撕裂，重影，模糊，过曝，噪点';
+
+  const body = {
+    model: ARK_CONFIG.model,
+    prompt,
+    response_format: 'b64_json',
+    size: ARK_CONFIG.size,
+    stream: false,
+    watermark: ARK_CONFIG.watermark,
+    image: [originRef, styleRef]   // 多图生图：[原图, 风格参考图]
+  };
+  body.negative_prompt = STYLE_TRANSFER_NEGATIVE;
+
+  console.log('[ai-service] 风格迁移，特征:', validFeatures.join(','),
+    '原图:', Math.round(originRef.length / 1024) + 'KB',
+    '参考图:', Math.round(styleRef.length / 1024) + 'KB');
+
+  try {
+    return await arkRequest(body, signal);
+  } catch (err) {
+    if (err.cancelled) {
+      console.log('[ai-service] 风格迁移请求已被用户取消');
+      throw err;
+    }
+    console.error('[ai-service] 风格迁移失败:', err.message, err.statusCode || '', err.code || '');
+    throw err;
+  }
+}
+
 module.exports = {
   uploadImage,
   submitRetouch,
@@ -611,5 +751,7 @@ module.exports = {
   pollTaskStatus,
   connectTaskWebSocket,
   generateEdit,
+  generateStyleTransfer,
+  STYLE_FEATURES,
   createCancelToken
 };

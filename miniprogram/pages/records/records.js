@@ -4,7 +4,7 @@ const { getTextForStatus, isTerminal, isFailed } = require('../../utils/task-sta
 const taskRunner = require('../../utils/task-runner.js');
 
 const TYPE_NAME_MAP = {
-  retouch: 'AI精修',
+  retouch: '智能精修',
   batch: '批量精修',
   'text-edit': '无痕改字',
   cutout: '智能抠图',

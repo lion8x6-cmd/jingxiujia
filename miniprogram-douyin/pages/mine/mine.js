@@ -30,7 +30,7 @@ Page({
       { key: 'privacy', icon: '🔒', title: '隐私政策', desc: '' }
     ],
     benefits: [
-      { icon: '✨', title: '无限次AI精修', desc: '不限次数使用全部AI功能' },
+      { icon: '✨', title: '无限次精修', desc: '不限次数使用全部功能' },
       { icon: '📦', title: '批量处理', desc: '一次最多20张，效率翻倍' },
       { icon: '💎', title: '高清无水印', desc: '导出原图分辨率，无水印' },
       { icon: '⚡', title: '优先处理通道', desc: '会员专属队列，更快出图' },
@@ -180,7 +180,7 @@ Page({
   showAbout() {
     platform.showModal({
       title: '关于P图精修必拍',
-      content: 'P图精修必拍 v1.0.0\nAI一键精修，让废片变大片。\n所有图片7天后自动销毁，保护您的隐私。',
+      content: 'P图精修必拍 v1.0.0\n一键精修，让废片变大片。\n所有图片7天后自动销毁，保护您的隐私。',
       showCancel: false,
       confirmText: '知道了',
       confirmColor: '#FE2C55'
@@ -210,7 +210,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: 'P图精修必拍 - AI一键精修，废片变大片',
+      title: 'P图精修必拍 - 一键精修，废片变大片',
       path: '/pages/index/index'
     };
   }

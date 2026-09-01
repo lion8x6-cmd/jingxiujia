@@ -1,0 +1,161 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+}
+
+/* 图片区 */
+.image-area {
+  position: relative;
+  background: #1a1a1a;
+  padding: 24rpx;
+}
+
+.result-img {
+  width: 100%;
+  border-radius: 12rpx;
+  display: block;
+}
+
+.compare-hint {
+  text-align: center;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 16rpx;
+}
+
+.badge {
+  position: absolute;
+  top: 40rpx;
+  left: 40rpx;
+  padding: 6rpx 20rpx;
+  font-size: 24rpx;
+  color: #fff;
+  border-radius: 20rpx;
+  backdrop-filter: blur(10px);
+}
+
+.badge.original {
+  background: rgba(150, 150, 150, 0.7);
+}
+
+.badge.result {
+  background: rgba(254, 44, 85, 0.8);
+}
+
+.zoom-btn {
+  position: absolute;
+  top: 40rpx;
+  right: 40rpx;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.zoom-icon {
+  font-size: 32rpx;
+  color: #fff;
+  line-height: 1;
+}
+
+/* 信息卡 */
+.info-card {
+  margin: 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx 28rpx;
+}
+
+.info-row {
+  display: flex;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  width: 120rpx;
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.info-value.tag {
+  display: inline-block;
+  width: auto;
+  color: #FE2C55;
+  background: #f0faf4;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+  font-size: 26rpx;
+}
+
+.prompt-text {
+  white-space: pre-wrap;
+}
+
+.negative-text {
+  color: #e24b4a;
+}
+
+.time {
+  color: #bbb;
+  font-size: 26rpx;
+}
+
+/* 操作栏 */
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 16rpx;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.action-btn {
+  flex: 1;
+  text-align: center;
+  padding: 22rpx 0;
+  font-size: 28rpx;
+  color: #FE2C55;
+  background: #f0faf4;
+  border-radius: 44rpx;
+}
+
+.action-btn.danger {
+  color: #e24b4a;
+  background: #fef0f0;
+}
+
+.action-btn:active {
+  opacity: 0.7;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  font-size: 28rpx;
+  color: #999;
+}

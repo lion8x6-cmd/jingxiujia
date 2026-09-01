@@ -8,7 +8,7 @@
         </view>
       </view>
     </view>
-    <view class="canvas-hint" wx:if="{{!autoCutDone}}">AI正在识别主体...</view>
+    <view class="canvas-hint" wx:if="{{!autoCutDone}}">正在识别主体...</view>
   </view>
 
   <view class="tool-bar" wx:if="{{autoCutDone}}">

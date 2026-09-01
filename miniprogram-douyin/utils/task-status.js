@@ -46,7 +46,7 @@ function getTextForStatus(status) {
     [TaskStatus.REVIEWING]: '内容审核中',
     [TaskStatus.REVIEW_REJECTED]: '审核未通过',
     [TaskStatus.QUEUED]: '排队中',
-    [TaskStatus.PROCESSING]: 'AI处理中',
+    [TaskStatus.PROCESSING]: '精修中',
     [TaskStatus.COMPLETED]: '处理完成',
     [TaskStatus.PREVIEW_READY]: '可预览',
     [TaskStatus.FAILED]: '处理失败',
