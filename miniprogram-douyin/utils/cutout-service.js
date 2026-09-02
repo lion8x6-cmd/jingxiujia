@@ -166,58 +166,76 @@ function cleanOldCutoutFiles(fs) {
   } catch (e) {}
 }
 
+// 用 getImageInfo 把任意临时路径(http://tmp、ttfile:// 等)规范化为 canvas 可靠加载的本地路径，并取准确像素宽高
+function normalizeImage(srcPath) {
+  return new Promise((resolve, reject) => {
+    platform.getImageInfo({
+      src: srcPath,
+      success: (info) => resolve({ path: info.path || srcPath, width: info.width, height: info.height }),
+      fail: (err) => reject(new Error('读取图片信息失败：' + ((err && err.errMsg) || err || '') + '（src=' + srcPath + '）'))
+    });
+  });
+}
+
 /**
  * 按归一化框选区域裁剪图片，导出 PNG 本地文件（作为抠图输入，限定"框什么抠什么"）。
+ * 先用 getImageInfo 规范化源图路径并取像素宽高（兼容模拟器 http://tmp 临时路径）。
  * @param {string} srcPath 源图本地路径
  * @param {object} region {x1,y1,x2,y2} 归一化 0-999
  * @param {object} canvasNode 页面 <canvas type="2d"> 节点
  * @returns {Promise<string>} 裁剪后 PNG 本地路径
  */
 function cropRegionToFile(srcPath, region, canvasNode) {
-  return new Promise((resolve, reject) => {
-    if (!canvasNode || typeof canvasNode.createImage !== 'function') {
-      reject(new Error('裁剪画布不可用')); return;
-    }
-    loadCanvasImage(canvasNode, srcPath).then((img) => {
-      try {
-        const iw = img.naturalWidth || img.width;
-        const ih = img.naturalHeight || img.height;
-        let sx = Math.min(region.x1, region.x2) / 999 * iw;
-        let sy = Math.min(region.y1, region.y2) / 999 * ih;
-        let sw = Math.abs(region.x2 - region.x1) / 999 * iw;
-        let sh = Math.abs(region.y2 - region.y1) / 999 * ih;
-        sx = Math.max(0, sx); sy = Math.max(0, sy);
-        sw = Math.min(sw, iw - sx); sh = Math.min(sh, ih - sy);
-        if (sw < 4 || sh < 4) { reject(new Error('框选区域太小')); return; }
-
-        // 长边限制 2048，避免超大图 canvas 内存超限
-        const MAX = 2048;
-        let cw = Math.round(sw), ch = Math.round(sh);
-        const longSide = Math.max(cw, ch);
-        if (longSide > MAX) {
-          const k = MAX / longSide;
-          cw = Math.max(1, Math.round(cw * k));
-          ch = Math.max(1, Math.round(ch * k));
-        }
-
-        canvasNode.width = cw; canvasNode.height = ch;
-        const ctx = canvasNode.getContext('2d');
-        ctx.clearRect(0, 0, cw, ch);
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
-        img.src = '';
-
-        const fs = platform.getFileSystemManager();
-        cleanOldCutoutFiles(fs);
-        const filePath = platform.env.USER_DATA_PATH + '/crop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
-        const dataURL = canvasNode.toDataURL('image/png');
-        const base64 = dataURL.split(',')[1];
-        const ab = platform.base64ToArrayBuffer(base64);
-        fs.writeFileSync(filePath, ab);
-        resolve(filePath);
-      } catch (e) {
-        reject(e);
+  return normalizeImage(srcPath).then((info) => {
+    return new Promise((resolve, reject) => {
+      if (!canvasNode || typeof canvasNode.createImage !== 'function') {
+        reject(new Error('[裁剪] 裁剪画布不可用')); return;
       }
-    }).catch(reject);
+      loadCanvasImage(canvasNode, info.path).then((img) => {
+        try {
+          // 优先用 getImageInfo 的准确像素宽高
+          const iw = info.width || img.naturalWidth || img.width;
+          const ih = info.height || img.naturalHeight || img.height;
+          if (!iw || !ih) { reject(new Error('[裁剪] 读取图片尺寸失败')); return; }
+          let sx = Math.min(region.x1, region.x2) / 999 * iw;
+          let sy = Math.min(region.y1, region.y2) / 999 * ih;
+          let sw = Math.abs(region.x2 - region.x1) / 999 * iw;
+          let sh = Math.abs(region.y2 - region.y1) / 999 * ih;
+          sx = Math.max(0, sx); sy = Math.max(0, sy);
+          sw = Math.min(sw, iw - sx); sh = Math.min(sh, ih - sy);
+          if (sw < 4 || sh < 4) { reject(new Error('框选区域太小')); return; }
+
+          // 长边限制 2048，避免超大图 canvas 内存超限
+          const MAX = 2048;
+          let cw = Math.round(sw), ch = Math.round(sh);
+          const longSide = Math.max(cw, ch);
+          if (longSide > MAX) {
+            const k = MAX / longSide;
+            cw = Math.max(1, Math.round(cw * k));
+            ch = Math.max(1, Math.round(ch * k));
+          }
+
+          canvasNode.width = cw; canvasNode.height = ch;
+          const ctx = canvasNode.getContext('2d');
+          ctx.clearRect(0, 0, cw, ch);
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+          img.src = '';
+
+          const fs = platform.getFileSystemManager();
+          cleanOldCutoutFiles(fs);
+          const filePath = platform.env.USER_DATA_PATH + '/crop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
+          const dataURL = canvasNode.toDataURL('image/png');
+          const base64 = dataURL.split(',')[1];
+          const ab = platform.base64ToArrayBuffer(base64);
+          fs.writeFileSync(filePath, ab);
+          resolve(filePath);
+        } catch (e) {
+          reject(new Error('[裁剪] ' + ((e && (e.errMsg || e.message)) || e)));
+        }
+      }).catch((e) => {
+        reject(new Error('[裁剪] 加载图片失败：' + ((e && (e.errMsg || e.message)) || e || '') + '（可能是临时图片路径已失效，请重新选图）'));
+      });
+    });
   });
 }
 
