@@ -765,10 +765,10 @@ Page({
       return;
     }
 
-    // 局部编辑模式：单指绘制/移动选区
+    // 局部编辑模式：单指绘制/移动选区/拖手柄缩放
     const local = this.isLocalEditActive();
     if (local && touches.length === 1
-        && (this.data.isDrawing || this.data.dragMode === 'move')) {
+        && (this.data.isDrawing || this.data.dragMode === 'move' || this.data.dragMode === 'resize')) {
       const t = touches[0];
       const sx = this._stageRect ? t.clientX - this._stageRect.left : t.clientX;
       const sy = this._stageRect ? t.clientY - this._stageRect.top : t.clientY;
@@ -1161,9 +1161,30 @@ Page({
   },
 
   // ============ 局部编辑：触摸交互 ============
-  // 判断触摸点是否在某个选区或手柄上
+  // 8 个缩放手柄在屏幕坐标系的位置（基于选区屏幕矩形）
+  getHandlePositions(r) {
+    const cx = (r.sx1 + r.sx2) / 2, cy = (r.sy1 + r.sy2) / 2;
+    return {
+      tl: [r.sx1, r.sy1], tc: [cx, r.sy1], tr: [r.sx2, r.sy1],
+      ml: [r.sx1, cy], mr: [r.sx2, cy],
+      bl: [r.sx1, r.sy2], bc: [cx, r.sy2], br: [r.sx2, r.sy2]
+    };
+  },
+
+  // 判断触摸点是否在某个选区的缩放手柄或选区内（手柄优先）
   hitTestRegion(x, y) {
     const regions = this.data.localRegions;
+    const R = 28; // 手柄触控半径（px），手指好按
+    for (let i = regions.length - 1; i >= 0; i--) {
+      const r = regions[i];
+      const handles = this.getHandlePositions(r);
+      for (const h in handles) {
+        const hx = handles[h][0], hy = handles[h][1];
+        if (Math.abs(x - hx) <= R && Math.abs(y - hy) <= R) {
+          return { id: r.id, action: 'resize', handle: h };
+        }
+      }
+    }
     for (let i = regions.length - 1; i >= 0; i--) {
       const r = regions[i];
       const sx1 = r.sx1, sy1 = r.sy1, sx2 = r.sx2, sy2 = r.sy2;
@@ -1175,13 +1196,14 @@ Page({
   },
 
   onLocalTouchStart(x, y) {
-    // 先检查是否点中已有选区（移动）
+    // 先检查是否点中手柄（缩放）或选区（移动）
     const hit = this.hitTestRegion(x, y);
     if (hit) {
       this.setData({
         activeRegionId: hit.id,
-        dragMode: 'move',
-        dragStartData: { x, y, regions: JSON.parse(JSON.stringify(this.data.localRegions)) }
+        dragMode: hit.action,               // 'move' | 'resize'
+        dragHandle: hit.handle || null,
+        dragStartData: { x, y, handle: hit.handle || null, id: hit.id, regions: JSON.parse(JSON.stringify(this.data.localRegions)) }
       });
       return;
     }
@@ -1203,6 +1225,27 @@ Page({
   },
 
   onLocalTouchMove(x, y) {
+    // 拖拽手柄缩放选区
+    if (this.data.dragMode === 'resize') {
+      const activeId = this.data.activeRegionId;
+      const handle = this.data.dragHandle;
+      const n = this.screenToNorm(x, y);   // 触摸点转归一化 0-999
+      const MIN = 30;                       // 最小宽/高（归一化单位）
+      const clamp999 = v => Math.max(0, Math.min(999, v));
+      const updated = this.data.localRegions.map(r => {
+        if (r.id !== activeId) return r;
+        let x1 = r.x1, y1 = r.y1, x2 = r.x2, y2 = r.y2;
+        if (handle.indexOf('l') !== -1) x1 = clamp999(Math.min(n.x, x2 - MIN));
+        if (handle.indexOf('r') !== -1) x2 = clamp999(Math.max(n.x, x1 + MIN));
+        if (handle.indexOf('t') !== -1) y1 = clamp999(Math.min(n.y, y2 - MIN));
+        if (handle.indexOf('b') !== -1) y2 = clamp999(Math.max(n.y, y1 + MIN));
+        const p1 = this.normToScreen(x1, y1);
+        const p2 = this.normToScreen(x2, y2);
+        return { ...r, x1, y1, x2, y2, sx1: p1.x, sy1: p1.y, sx2: p2.x, sy2: p2.y };
+      });
+      this.setData({ localRegions: updated });
+      return;
+    }
     if (this.data.dragMode === 'move') {
       const { x: sx, y: sy, regions } = this.data.dragStartData;
       const dx = x - sx, dy = y - sy;
@@ -1276,7 +1319,7 @@ Page({
       }, () => this.recomputeCanSubmit());
       void contentRect;
     }
-    this.setData({ dragMode: null, dragStartData: null });
+    this.setData({ dragMode: null, dragHandle: null, dragStartData: null });
   },
 
   selectRegion(e) {
