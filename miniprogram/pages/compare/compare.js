@@ -251,6 +251,29 @@ Page({
   onReady() {
     // 测量舞台尺寸，用于缩放平移边界计算
     this.measureStage();
+    // 准备智能抠图框选裁剪用的页面 canvas 节点（离屏 canvas 加载相册临时图不稳定）
+    this.ensureCutoutCanvas();
+  },
+
+  // 获取/缓存抠图裁剪用的页面 canvas 节点；节点可能延迟渲染，带重试
+  ensureCutoutCanvas(times) {
+    times = times || 0;
+    return new Promise((resolve) => {
+      if (this._cutoutCanvas) { resolve(this._cutoutCanvas); return; }
+      wx.createSelectorQuery().in(this)
+        .select('#cutoutCanvas')
+        .fields({ node: true, size: true })
+        .exec((res) => {
+          if (res && res[0] && res[0].node) {
+            this._cutoutCanvas = res[0].node;
+            resolve(this._cutoutCanvas);
+          } else if (times < 20) {
+            setTimeout(() => this.ensureCutoutCanvas(times + 1).then(resolve), 100);
+          } else {
+            resolve(null);
+          }
+        });
+    });
   },
 
   // ============ 个性化修图（空状态）：页内上传图片 ============
@@ -1720,8 +1743,9 @@ Page({
     wx.showLoading({ title: '抠图中...', mask: true });
 
     try {
-      // 1) 本地裁剪框选区域为 PNG（微信离屏 canvas，无需页面节点）
-      const cropPath = await cutoutService.cropRegionToFile(srcPath, region);
+      // 1) 本地裁剪框选区域为 PNG（用页面 canvas 节点，离屏 canvas 加载相册临时图不稳定）
+      const canvasNode = await this.ensureCutoutCanvas();
+      const cropPath = await cutoutService.cropRegionToFile(srcPath, region, canvasNode);
       // 2) MediaKit 背景移除（general 通用：人物/物品/文字/贴图/Logo 均可），输出透明 PNG
       const cutoutPath = await cutoutService.removeBackground(cropPath, { scene: 'general' });
 

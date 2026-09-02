@@ -1347,3 +1347,12 @@
   color: #999;
   line-height: 1.4;
 }
+
+/* 智能抠图裁剪用常驻隐藏 canvas（离屏 canvas 加载相册临时图不稳定，用页面节点） */
+.filter-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 100px;
+  height: 100px;
+}

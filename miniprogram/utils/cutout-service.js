@@ -159,58 +159,75 @@ function cleanOldCutoutFiles(fs) {
 
 /**
  * 按归一化框选区域裁剪图片，导出 PNG 本地文件（作为抠图输入，限定"框什么抠什么"）。
- * 微信端用离屏 canvas，第三参 canvasNode 忽略（与抖音端签名保持一致）。
+ * 优先用传入的页面 <canvas type="2d"> 节点（离屏 canvas 的 createImage 加载相册临时图偶发失败）；
+ * 未传节点时回退 wx.createOffscreenCanvas。
  * @param {string} srcPath 源图本地路径
  * @param {object} region {x1,y1,x2,y2} 归一化 0-999
+ * @param {object} [canvasNode] 页面 canvas 节点（推荐传入）
  * @returns {Promise<string>} 裁剪后 PNG 本地路径
  */
-function cropRegionToFile(srcPath, region) {
+function cropRegionToFile(srcPath, region, canvasNode) {
   return new Promise((resolve, reject) => {
+    let canvas;
     try {
-      const canvas = wx.createOffscreenCanvas({ type: '2d', width: 100, height: 100 });
-      loadImage(canvas, srcPath).then((img) => {
-        try {
-          const iw = img.naturalWidth || img.width;
-          const ih = img.naturalHeight || img.height;
-          let sx = Math.min(region.x1, region.x2) / 999 * iw;
-          let sy = Math.min(region.y1, region.y2) / 999 * ih;
-          let sw = Math.abs(region.x2 - region.x1) / 999 * iw;
-          let sh = Math.abs(region.y2 - region.y1) / 999 * ih;
-          sx = Math.max(0, sx); sy = Math.max(0, sy);
-          sw = Math.min(sw, iw - sx); sh = Math.min(sh, ih - sy);
-          if (sw < 4 || sh < 4) { reject(new Error('框选区域太小')); return; }
-
-          const MAX = 2048;
-          let cw = Math.round(sw), ch = Math.round(sh);
-          const longSide = Math.max(cw, ch);
-          if (longSide > MAX) {
-            const k = MAX / longSide;
-            cw = Math.max(1, Math.round(cw * k));
-            ch = Math.max(1, Math.round(ch * k));
-          }
-
-          canvas.width = cw; canvas.height = ch;
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, cw, ch);
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
-
-          const fs = wx.getFileSystemManager();
-          cleanOldCutoutFiles(fs);
-          const filePath = wx.env.USER_DATA_PATH + '/crop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
-          const dataURL = canvas.toDataURL('image/png');
-          const base64 = dataURL.split(',')[1];
-          fs.writeFile({
-            filePath, data: base64, encoding: 'base64',
-            success: () => resolve(filePath),
-            fail: (e) => reject(e)
-          });
-        } catch (e) {
-          reject(e);
-        }
-      }).catch(reject);
+      if (canvasNode && typeof canvasNode.createImage === 'function') {
+        canvas = canvasNode;
+      } else {
+        canvas = wx.createOffscreenCanvas({ type: '2d', width: 100, height: 100 });
+      }
     } catch (e) {
-      reject(e);
+      reject(new Error('[裁剪] 初始化画布失败：' + (e.errMsg || e.message || e)));
+      return;
     }
+    loadImage(canvas, srcPath).then((img) => {
+      try {
+        const iw = img.naturalWidth || img.width;
+        const ih = img.naturalHeight || img.height;
+        if (!iw || !ih) { reject(new Error('[裁剪] 读取图片尺寸失败')); return; }
+        let sx = Math.min(region.x1, region.x2) / 999 * iw;
+        let sy = Math.min(region.y1, region.y2) / 999 * ih;
+        let sw = Math.abs(region.x2 - region.x1) / 999 * iw;
+        let sh = Math.abs(region.y2 - region.y1) / 999 * ih;
+        sx = Math.max(0, sx); sy = Math.max(0, sy);
+        sw = Math.min(sw, iw - sx); sh = Math.min(sh, ih - sy);
+        if (sw < 4 || sh < 4) { reject(new Error('框选区域太小')); return; }
+
+        const MAX = 2048;
+        let cw = Math.round(sw), ch = Math.round(sh);
+        const longSide = Math.max(cw, ch);
+        if (longSide > MAX) {
+          const k = MAX / longSide;
+          cw = Math.max(1, Math.round(cw * k));
+          ch = Math.max(1, Math.round(ch * k));
+        }
+
+        canvas.width = cw; canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+
+        const fs = wx.getFileSystemManager();
+        cleanOldCutoutFiles(fs);
+        const filePath = wx.env.USER_DATA_PATH + '/crop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png';
+        let dataURL = '';
+        try {
+          dataURL = canvas.toDataURL('image/png');
+        } catch (e) {
+          reject(new Error('[裁剪] 导出失败：' + (e.errMsg || e.message || e)));
+          return;
+        }
+        const base64 = dataURL.split(',')[1];
+        fs.writeFile({
+          filePath, data: base64, encoding: 'base64',
+          success: () => resolve(filePath),
+          fail: (e) => reject(new Error('[裁剪] 写文件失败：' + (e.errMsg || e.message || e)))
+        });
+      } catch (e) {
+        reject(new Error('[裁剪] ' + (e.errMsg || e.message || e)));
+      }
+    }).catch((e) => {
+      reject(new Error('[裁剪] 加载图片失败：' + ((e && (e.errMsg || e.message)) || e || '') + '（可能是临时图片路径已失效，请重新选图）'));
+    });
   });
 }
 

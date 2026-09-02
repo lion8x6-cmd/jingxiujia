@@ -348,4 +348,7 @@
     </scroll-view>
     <view class="prompt-modal-close" bindtap="closePrompt" hover-class="prompt-modal-close-hover">知道了</view>
   </view>
+
+  <!-- 智能抠图框选裁剪用的页面 canvas（常驻隐藏；离屏 canvas 加载相册临时图不稳定，统一用页面节点） -->
+  <canvas type="2d" id="cutoutCanvas" class="filter-canvas"></canvas>
 </view>
