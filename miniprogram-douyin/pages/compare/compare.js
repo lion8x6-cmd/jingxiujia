@@ -1794,7 +1794,13 @@ Page({
       console.error('[compare] 抠图失败:', err);
       this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });
       const msg = (err && err.message) ? err.message : '抠图失败，请重试';
-      platform.showToast({ title: msg, icon: 'none' });
+      // 用弹窗显示完整错误（toast 会截断），真机排查时能看到具体阶段 + errMsg
+      platform.showModal({
+        title: '抠图失败',
+        content: msg,
+        showCancel: false,
+        confirmText: '知道了'
+      });
     }
   },
 

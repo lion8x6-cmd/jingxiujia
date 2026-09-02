@@ -16,28 +16,39 @@
  */
 const MEDIAKIT_CONFIG = require('./mediakit-config.js');
 
-function request(options) {
+// 统一提取微信/抖音 fail 回调里的错误信息（fail 给的是 {errMsg:"request:fail ..."}，没有 .message）
+function errText(err, fallback) {
+  if (!err) return fallback || '未知错误';
+  if (typeof err === 'string') return err;
+  return err.errMsg || err.message || err.errmsg || fallback || '未知错误';
+}
+
+function request(options, stage) {
   return new Promise((resolve, reject) => {
     wx.request({
       ...options,
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
-        else reject(new Error('HTTP ' + res.statusCode + ' ' + (res.data && res.data.message ? res.data.message : '')));
+        else {
+          const body = res.data;
+          const msg = (body && (body.message || (body.Response && body.Response.Error && body.Response.Error.Message))) || '';
+          reject(new Error('[' + stage + '] HTTP ' + res.statusCode + (msg ? ' ' + msg : '')));
+        }
       },
-      fail: (err) => reject(err)
+      fail: (err) => reject(new Error('[' + stage + '] 网络请求失败：' + errText(err, '') + '（请检查小程序后台是否已配置该域名的合法域名）'))
     });
   });
 }
 
-function downloadFile(url) {
+function downloadFile(url, stage) {
   return new Promise((resolve, reject) => {
     wx.downloadFile({
       url,
       success: (res) => {
         if (res.statusCode === 200 && res.tempFilePath) resolve(res.tempFilePath);
-        else reject(new Error('下载抠图结果失败 HTTP ' + res.statusCode));
+        else reject(new Error('[' + stage + '] 下载失败 HTTP ' + res.statusCode));
       },
-      fail: (err) => reject(err)
+      fail: (err) => reject(new Error('[' + stage + '] 下载失败：' + errText(err, '') + '（请检查 downloadFile 合法域名）'))
     });
   });
 }
@@ -48,7 +59,7 @@ function readFileBuffer(filePath) {
     wx.getFileSystemManager().readFile({
       filePath,
       success: (res) => resolve(res.data),
-      fail: (err) => reject(err)
+      fail: (err) => reject(new Error('读取图片失败：' + errText(err, '')))
     });
   });
 }
@@ -73,10 +84,10 @@ function removeBackground(filePath, opts) {
     method: 'POST',
     header: { 'Content-Type': 'application/json', ...authHeader },
     data: {}
-  }).then((body) => {
+  }, '申请上传').then((body) => {
     const result = body && body.result ? body.result : body;
     if (!result || !result.file_id || !result.upload_url) {
-      throw new Error('申请上传地址失败');
+      throw new Error('[申请上传] 未返回上传地址：' + JSON.stringify(body).slice(0, 200));
     }
     return result;
   });
@@ -88,7 +99,7 @@ function removeBackground(filePath, opts) {
         method: 'PUT',
         header: { 'Content-Type': 'application/octet-stream' },
         data: buf
-      }).then(() => up.file_id);
+      }, '上传图片').then(() => up.file_id);
     });
   }).then((fileId) => {
     return request({
@@ -100,16 +111,16 @@ function removeBackground(filePath, opts) {
         scene: scene,
         output_format: 'png'
       }
-    }).then((body) => {
+    }, '抠图处理').then((body) => {
       const result = body && body.result ? body.result : body;
       if (!result || !result.image_url) {
-        const msg = body && body.message ? body.message : (body && body.Response && body.Response.Error && body.Response.Error.Message);
-        throw new Error('抠图失败：' + (msg || '未返回结果图'));
+        const msg = body && (body.message || (body.Response && body.Response.Error && body.Response.Error.Message));
+        throw new Error('[抠图处理] ' + (msg || ('未返回结果图：' + JSON.stringify(body).slice(0, 200))));
       }
       return result.image_url;
     });
   }).then((imageUrl) => {
-    return downloadFile(imageUrl);
+    return downloadFile(imageUrl, '下载结果');
   }).then((tempPath) => {
     // 复制到持久用户目录（透明 PNG），避免临时文件重启后被清理
     try {
