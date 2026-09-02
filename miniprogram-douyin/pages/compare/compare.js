@@ -1782,9 +1782,12 @@ Page({
     const region = regions[0];
     // 基于当前展示图（最新精修结果，无则原图）裁剪
     const srcPath = this.data.displayUrl || item.originalUrl;
-    if (!srcPath || /^https?:\/\//i.test(srcPath) || srcPath.indexOf('data:') === 0) {
-      platform.showToast({ title: '当前图片无法处理', icon: 'none' }); return;
+    if (!srcPath) {
+      platform.showToast({ title: '请先上传图片', icon: 'none' }); return;
     }
+    // 注意：不在这里按 ^https?:// 拦截——模拟器/真机 chooseImage 返回的本地临时路径
+    // 可能形如 http://tmp/xxx（真机为 ttfile:///wxfile://），canvas 可正常加载；裁剪后产出本地 PNG 再上传。
+    // 若图片确实加载不了，cropRegionToFile 会抛出带 [裁剪] 前缀的明确错误。
 
     this.setData({ generating: true, genProgress: 0, genProgressText: '0.00', showOriginal: false });
     this.startProgressAnim();
