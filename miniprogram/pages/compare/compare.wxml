@@ -135,9 +135,9 @@
 
   <!-- 展开态：编辑面板 -->
   <view class="edit-panel {{editExpanded ? 'show' : ''}}" wx:if="{{editExpanded}}">
-    <!-- 模式切换：老照片修复无 tab；改字/抠图/消除工具只显示「一句话修图」「局部修改」；普通入口全量 -->
-    <view class="mode-tabs" wx:if="{{adjustMode !== 'restore'}}">
-      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" bindtap="switchMode" data-mode="ai">一句话修图</view>
+    <!-- 模式切换：老照片修复无 tab；抠图只有局部框选一个模式故无 tab；改字/消除只显示「一句话修图」「局部修改」；普通入口全量 -->
+    <view class="mode-tabs" wx:if="{{adjustMode !== 'restore' && !(toolLocked && activeTool === 'cutout')}}">
+      <view class="mode-tab {{adjustMode === 'ai' ? 'on' : ''}}" wx:if="{{!(toolLocked && activeTool === 'cutout')}}" bindtap="switchMode" data-mode="ai">一句话修图</view>
       <block wx:if="{{!toolLocked}}">
         <view class="mode-tab {{adjustMode === 'style' ? 'on' : ''}}" bindtap="switchMode" data-mode="style">参考图</view>
       </block>
@@ -229,31 +229,32 @@
 
     <!-- 局部修改面板 -->
     <view class="local-panel" hidden="{{adjustMode !== 'local'}}">
-      <!-- 工具入口引导：改字 / 消除 -->
+      <!-- 工具入口引导：改字 / 消除 / 抠图 -->
       <view class="tool-hint" wx:if="{{toolHint}}">💡 {{toolHint}}</view>
       <!-- 空状态指引 -->
       <view class="local-guide-card" wx:if="{{localRegions.length === 0}}">
-        <view class="guide-step"><text class="step-num">1</text><text class="step-text">在图片上拖动手指，框选要修改的区域</text></view>
+        <view class="guide-step"><text class="step-num">1</text><text class="step-text">在图片上拖动手指，框选要{{toolLocked && activeTool === 'cutout' ? '抠出' : '修改'}}的区域</text></view>
         <view class="guide-step"><text class="step-num">2</text><text class="step-text">{{localExample}}</text></view>
-        <view class="guide-step"><text class="step-num">3</text><text class="step-text">可继续添加多个区域，或直接提交生成</text></view>
+        <view class="guide-step" wx:if="{{!(toolLocked && activeTool === 'cutout')}}"><text class="step-num">3</text><text class="step-text">可继续添加多个区域，或直接提交生成</text></view>
+        <view class="guide-step" wx:if="{{toolLocked && activeTool === 'cutout'}}"><text class="step-num">3</text><text class="step-text">框好后点下方「一键抠出透明图」即可</text></view>
       </view>
 
-      <!-- 已有区域列表 -->
+      <!-- 已有区域列表（抠图模式不显示指令输入框，框选即抠） -->
       <scroll-view scroll-y class="region-list" wx:if="{{localRegions.length > 0}}">
         <view class="region-card {{item.id === activeRegionId ? 'active' : ''}}"
               wx:for="{{localRegions}}" wx:key="id"
               bindtap="selectRegion" data-id="{{item.id}}">
           <view class="region-card-head">
-            <text class="region-card-index">区域 {{index + 1}}</text>
+            <text class="region-card-index">区域 {{index + 1}}{{toolLocked && activeTool === 'cutout' ? '（待抠出）' : ''}}</text>
             <text class="region-card-del" catchtap="deleteRegion" data-id="{{item.id}}">删除</text>
           </view>
-          <input class="region-card-input" placeholder="{{regionPlaceholder}}"
+          <input wx:if="{{!(toolLocked && activeTool === 'cutout')}}" class="region-card-input" placeholder="{{regionPlaceholder}}"
                  value="{{item.prompt}}" data-id="{{item.id}}"
                  bindinput="onRegionPromptInput" maxlength="100"/>
         </view>
       </scroll-view>
 
-      <view class="local-add-hint" wx:if="{{localRegions.length > 0 && localRegions.length < 5}}"
+      <view class="local-add-hint" wx:if="{{localRegions.length > 0 && localRegions.length < 5 && !(toolLocked && activeTool === 'cutout')}}"
             bindtap="addNewRegion">+ 继续框选新区域</view>
     </view>
 
@@ -287,16 +288,17 @@
       </view>
     </view>
 
-    <!-- 底部按钮：收起 + 提交 + 保存 -->
+    <!-- 底部按钮：老照片修复模式只留「一键修复」，隐藏收起/保存；其他模式 收起+提交+保存 -->
     <view class="edit-btn-row">
-      <view class="btn-collapse" bindtap="collapsePanel">收起</view>
+      <view class="btn-collapse" wx:if="{{adjustMode !== 'restore'}}" bindtap="collapsePanel">收起</view>
       <button class="btn-submit {{!canSubmit || generating ? 'disabled' : ''}}" bindtap="submitAdjust" disabled="{{!canSubmit || generating}}">
         <text wx:if="{{adjustMode === 'restore' && !generating}}">一键修复</text>
         <text wx:elif="{{adjustMode === 'filter' && !generating}}">应用调节</text>
+        <text wx:elif="{{submitText && !generating}}">{{submitText}}</text>
         <text wx:elif="{{!generating}}">提交修改并生成</text>
         <text wx:else>处理中 {{genProgressText}}%</text>
       </button>
-      <view class="btn-save-inline" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
+      <view class="btn-save-inline" wx:if="{{adjustMode !== 'restore'}}" catchtap="onSaveBtnTap" hover-class="btn-save-inline-hover" hover-stay-time="80">
         <text class="save-inline-ico">↓</text>
         <text class="save-inline-txt">保存</text>
       </view>

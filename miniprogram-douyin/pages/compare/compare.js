@@ -5,6 +5,7 @@ const { saveImageToAlbum, isAuthDenied, showAuthGuide } = require('../../utils/s
 const { matchBrightness } = require('../../utils/brightness-match');
 const { renderPreview, applyFilters, hasEffect } = require('../../utils/filters');
 const { chooseImage } = require('../../utils/picker');
+const cutoutService = require('../../utils/cutout-service');
 const platform = require('../../utils/platform.js');
 
 // 首页工具入口（?tool=xxx）的页面标题 + 各面板专属文案
@@ -24,16 +25,12 @@ const TOOL_UI = {
   },
   cutout: {
     navTitle: '智能抠图',
-    aiTip: '主体抠出后想换成什么背景？例如：“换成纯白证件照背景”',
-    aiPlaceholder: '想换成什么背景？留空则自动抠成干净纯色背景…',
-    aiChips: [
-      { text: '换成纯白色证件照背景', label: '纯白背景' },
-      { text: '换成浅蓝色证件照底色', label: '证件蓝底' },
-      { text: '背景虚化，突出人物主体', label: '虚化背景' },
-      { text: '换成干净的纯色背景', label: '纯色背景' }
-    ],
-    localExample: '框选边缘，输入“发丝边缘抠得更精细自然”',
-    regionPlaceholder: '局部精修抠图边缘，如：头发丝抠干净'
+    // 抠图只走「局部修改」：框选要抠的主体（人物/物品/文字/贴图/Logo 等），输出透明底 PNG
+    localOnly: true,
+    localExample: '框住要抠的主体，一键抠出（透明底 PNG）',
+    regionPlaceholder: '无需输入指令，框好后直接点下方按钮',
+    toolHint: '智能抠图：在图片上拖动手指，框住要抠出的主体（人物、物品、文字、贴图、Logo 等都可以），抠出后是透明底 PNG，可保存或换背景',
+    submitText: '一键抠出透明图'
   },
   erase: {
     navTitle: '智能消除',
@@ -121,6 +118,7 @@ Page({
     ],
     localExample: '输入修改指令，例如：磨皮美颜、换成卷发',
     regionPlaceholder: '输入修改指令，如：磨皮美颜',
+    submitText: '',        // 提交按钮文案（抠图工具="一键抠出透明图"，空=默认"提交修改并生成"）
 
     // AI 调节
     aiPrompt: '',
@@ -333,7 +331,8 @@ Page({
       aiPlaceholder: tui.aiPlaceholder || this.data.aiPlaceholder,
       aiChips: tui.aiChips || this.data.aiChips,
       localExample: tui.localExample || this.data.localExample,
-      regionPlaceholder: tui.regionPlaceholder || this.data.regionPlaceholder
+      regionPlaceholder: tui.regionPlaceholder || this.data.regionPlaceholder,
+      submitText: tui.submitText || ''
     };
     if (tool === 'text') {
       adjustMode = 'local';
@@ -342,8 +341,9 @@ Page({
       adjustMode = 'local';
       toolHint = '智能消除：框住要去掉的路人、杂物、水印等，指令写“消除此处内容，用周围背景自然补全”';
     } else if (tool === 'cutout') {
-      adjustMode = 'ai';
-      aiPrompt = '把画面中的主体人物完整抠出，去除原背景，换成简洁干净的纯色背景，人物边缘（含发丝）清晰自然';
+      // 智能抠图：只用局部框选，框什么抠什么，输出透明底 PNG（无需提示词）
+      adjustMode = 'local';
+      toolHint = tui.toolHint || '';
     } else if (tool === 'restore') {
       adjustMode = 'restore';
     }
@@ -976,7 +976,14 @@ Page({
   applyMode(mode) {
     if (!mode || mode === this.data.adjustMode || this.data.generating) return;
     // 工具入口（改字/抠图/消除）只允许一句话修图 / 局部修改，禁止切到参考图/实时调节
-    if (this.data.toolLocked && mode !== 'ai' && mode !== 'local') return;
+    if (this.data.toolLocked) {
+      if (this.data.activeTool === 'cutout') {
+        // 智能抠图：只用局部框选，禁止切到一句话修图/参考图/实时调节
+        if (mode !== 'local') return;
+      } else if (mode !== 'ai' && mode !== 'local') {
+        return;
+      }
+    }
     // 离开实时调节模式时清掉未应用的滤镜预览
     const leavingFilter = this.data.adjustMode === 'filter';
     this.setData({
@@ -1182,6 +1189,11 @@ Page({
     // 空白处开始绘制新选区
     if (this.data.localRegions.length >= 5) {
       platform.showToast({ title: '最多添加5个区域', icon: 'none' });
+      return;
+    }
+    // 智能抠图：一次只抠一个主体，框满 1 个后提示先删除再重框
+    if (this.data.activeTool === 'cutout' && this.data.localRegions.length >= 1) {
+      platform.showToast({ title: '抠图一次抠一个主体，删除后可重新框选', icon: 'none' });
       return;
     }
     this.setData({
@@ -1401,8 +1413,13 @@ Page({
     } else if (this.data.adjustMode === 'style') {
       can = !!this.data.refImagePath && this.getSelectedStyleFeatures().length > 0;
     } else if (this.data.adjustMode === 'local') {
-      can = this.data.localRegions.length > 0
-        && this.data.localRegions.some(r => (r.prompt || '').trim());
+      if (this.data.activeTool === 'cutout') {
+        // 抠图：框选了区域即可抠，无需提示词
+        can = this.data.localRegions.length > 0;
+      } else {
+        can = this.data.localRegions.length > 0
+          && this.data.localRegions.some(r => (r.prompt || '').trim());
+      }
     } else if (this.data.adjustMode === 'filter') {
       can = this.data.hasFilter;
     }
@@ -1461,6 +1478,11 @@ Page({
     // 实时调节模式：纯本地 Canvas 处理，不走 AI
     if (mode === 'filter') {
       return this.submitFilterAdjust(item);
+    }
+
+    // 智能抠图：框选区域 → 本地裁剪 → MediaKit 移除背景 → 透明底 PNG（不走豆包生图）
+    if (mode === 'local' && this.data.activeTool === 'cutout') {
+      return this.submitCutout(item);
     }
 
     const aiText = (this.data.aiPrompt || '').trim();
@@ -1704,6 +1726,75 @@ Page({
       console.error('[compare] 本地调节失败:', e);
       this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });
       platform.showToast({ title: '处理失败，请重试', icon: 'none' });
+    }
+  },
+
+  // ============ 智能抠图：框选裁剪 → MediaKit 背景移除 → 透明底 PNG ============
+  async submitCutout(item) {
+    const regions = this.data.localRegions;
+    if (!regions.length) {
+      platform.showToast({ title: '请先框选要抠出的主体', icon: 'none' }); return;
+    }
+    // 取第一个框选区域（抠图一次抠一个主体；框什么抠什么）
+    const region = regions[0];
+    // 基于当前展示图（最新精修结果，无则原图）裁剪
+    const srcPath = this.data.displayUrl || item.originalUrl;
+    if (!srcPath || /^https?:\/\//i.test(srcPath) || srcPath.indexOf('data:') === 0) {
+      platform.showToast({ title: '当前图片无法处理', icon: 'none' }); return;
+    }
+
+    this.setData({ generating: true, genProgress: 0, genProgressText: '0.00', showOriginal: false });
+    this.startProgressAnim();
+    platform.showLoading({ title: '抠图中...', mask: true });
+
+    try {
+      const canvasNode = await this.ensureFilterCanvas();
+      // 1) 本地裁剪框选区域为 PNG
+      const cropPath = await cutoutService.cropRegionToFile(srcPath, region, canvasNode);
+      // 2) MediaKit 背景移除（general 通用：人物/物品/文字/贴图/Logo 均可），输出透明 PNG
+      const cutoutPath = await cutoutService.removeBackground(cropPath, { scene: 'general' });
+
+      this.stopProgressAnim();
+      platform.hideLoading();
+      this.setData({ genProgress: 100, genProgressText: '100.00' });
+      await new Promise(r => setTimeout(r, 300));
+
+      // 抠出的透明 PNG 作为新版本结果
+      const history = Array.isArray(item.history) ? item.history.slice() : [];
+      if (item.resultUrl) {
+        history.push({ url: item.resultUrl, at: Date.now(), prompt: item.lastPrompt || item.prompt || '' });
+      }
+      const updatedItem = {
+        ...item,
+        resultUrl: cutoutPath,
+        status: TaskStatus.COMPLETED,
+        history,
+        lastPrompt: '智能抠图（透明底 PNG）'
+      };
+      storage.updateRecord(item.id, updatedItem);
+      const batchItems = this.data.batchItems.map(b => b.id === item.id ? updatedItem : b);
+      const versions = this.buildVersions(updatedItem);
+
+      this.setData({
+        generating: false,
+        versions,
+        versionIdx: versions.length - 1,
+        currentItem: updatedItem,
+        batchItems,
+        toolHint: '',
+        localRegions: [], activeRegionId: null, isDrawing: false, drawRect: null
+      }, () => {
+        this.updateVersionState();
+        this.recomputeCanSubmit();
+      });
+      platform.showToast({ title: '抠图完成', icon: 'success' });
+    } catch (err) {
+      this.stopProgressAnim();
+      platform.hideLoading();
+      console.error('[compare] 抠图失败:', err);
+      this.setData({ generating: false, genProgress: 0, genProgressText: '0.00' });
+      const msg = (err && err.message) ? err.message : '抠图失败，请重试';
+      platform.showToast({ title: msg, icon: 'none' });
     }
   },
 
